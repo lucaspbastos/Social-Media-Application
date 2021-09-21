@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .vscode
 **/.DS_Store
 # Logs
@@ -118,3 +119,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+=======
+.DS_Store
+/.vscode
+>>>>>>> 3161c26 (Back end init & base template)

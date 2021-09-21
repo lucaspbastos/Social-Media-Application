@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "dependencies": {
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
@@ -12,15 +13,35 @@
   "main": "db.js",
   "scripts": {
     "start": "nodemon db.js"
+=======
+  "name": "cs-490",
+  "version": "0.0.1",
+  "description": "CS 490 Project",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+>>>>>>> 3161c26 (Back end init & base template)
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lucaspbastos/CS-490.git"
   },
+<<<<<<< HEAD
   "author": "",
+=======
+  "author": "Tahmim Ahmed, Lucas Bastos, Michael Galanaugh",
+>>>>>>> 3161c26 (Back end init & base template)
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/lucaspbastos/CS-490/issues"
   },
+<<<<<<< HEAD
   "homepage": "https://github.com/lucaspbastos/CS-490#readme"
+=======
+  "homepage": "https://github.com/lucaspbastos/CS-490#readme",
+  "dependencies": {
+    "hash.js": "^1.1.7"
+  }
+>>>>>>> 3161c26 (Back end init & base template)
 }
