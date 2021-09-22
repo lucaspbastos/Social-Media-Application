@@ -10,7 +10,7 @@ Instructor: Professor Theodore L. Nicholson
 - Back End: [Node.js](https://nodejs.org/en/) running [Express](https://expressjs.com/) web application framework
 - Database:
 ### Branches:
-- Alpha: [alpha-main](https://github.com/lucaspbastos/CS-490/tree/alpha)
-- Beta: [beta-main](https://github.com/lucaspbastos/CS-490/tree/beta)
+- Alpha: [alpha-main](https://github.com/lucaspbastos/CS-490/tree/alpha-main)
+- Beta: [beta-main](https://github.com/lucaspbastos/CS-490/tree/beta-main)
 - Release Candidate: [rc-main](https://github.com/lucaspbastos/CS-490/tree/rc-main)
 - Final: [main](https://github.com/lucaspbastos/CS-490/tree/main)
