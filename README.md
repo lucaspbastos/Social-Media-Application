@@ -6,11 +6,11 @@ Course: CS 490 - Design in Software Engineering at New Jersey Insitute of Techno
 Instructor: Professor Theodore L. Nicholson
 
 ## Stack:
-Front End: 
-Back End: [Node.js](https://nodejs.org/en/) running [Express](https://expressjs.com/) web application framework
-Database:
+- Front End: 
+- Back End: [Node.js](https://nodejs.org/en/) running [Express](https://expressjs.com/) web application framework
+- Database:
 ### Branches:
-Alpha: alpha-main
-Beta: beta-main
-Release Candidate: rc-main
-Final: main
+- Alpha: [alpha-main](https://github.com/lucaspbastos/CS-490/tree/alpha)
+- Beta: [beta-main](https://github.com/lucaspbastos/CS-490/tree/beta)
+- Release Candidate: [rc-main](https://github.com/lucaspbastos/CS-490/tree/rc-main)
+- Final: [main](https://github.com/lucaspbastos/CS-490/tree/main)
