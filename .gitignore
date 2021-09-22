@@ -122,4 +122,8 @@ dist
 =======
 .DS_Store
 /.vscode
+<<<<<<< HEAD
 >>>>>>> 3161c26 (Back end init & base template)
+=======
+/node_modules
+>>>>>>> 1591f58 (Remove node_modules, add Express and swap hash.js with Argon2)

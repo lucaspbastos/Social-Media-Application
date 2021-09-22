@@ -1,11 +1,25 @@
-const hash = require('hash.js');
-// Grab pepper from GitHub secrets
-const pepper = process.env.PEPPER;
+// Lucas Bastos
+// CS-490 Alpha Project
 
-function hashSaltPepper(password, salt, pepper) {
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3001;
+
+
+app.get('/', (req,res)=> { 
+    // default landing
+    const index = 'hello!';
+    res.send(index);
+});
+
+app.post('/login', (req,res) => {
+
+});
+
+hashSaltPepper = (password, salt, pepper) => {
     // Compute hashedSaltedPepperedPassword
     return hash.sha256(password + salt + pepper);
-}
+};
 
 function getSalt(username) {
     // get user salt from database
@@ -18,3 +32,6 @@ function checkUser(username, hashedSaltedPepperedPassword) {
 }
 
 // Run web server
+
+
+app.listen(port, () => console.log("Listening on port %s", port));
