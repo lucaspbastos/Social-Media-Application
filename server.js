@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3001;
  **/
 const hashConfig = {
     SALT_LEN: 128,
-    PASS_LEN: 256,
+    HASH_LEN: 256,
     HASH_ITERATIONS: 2**20,
     DIGEST: 'SHA512',
     PEPPER: 'testing'
@@ -33,7 +33,7 @@ app.post('/login', (req,res) => {
  * @param {Buffer} salt - Salt to be used for salting password.
  **/
 function hashSaltPepperPassword(password, salt) {
-    return crypto.pbkdf2Sync(hashConfig.PEPPER + password, salt, hashConfig.HASH_ITERATIONS, hashConfig.PASS_LEN, hashConfig.DIGEST);
+    return crypto.pbkdf2Sync(hashConfig.PEPPER + password, salt, hashConfig.HASH_ITERATIONS, hashConfig.HASH_LEN, hashConfig.DIGEST);
 }
 
 /**
