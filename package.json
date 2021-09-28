@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "mariadb": "^2.5.4",
+    "mysql": "^2.18.1",
+    "nodemon": "^2.0.13"
+  },
+  "name": "cs-490",
+  "description": "By: Tahmim Ahmed, Lucas Bastos, and Michael Galanaugh",
+  "version": "1.0.0",
+  "main": "db.js",
+  "scripts": {
+    "start": "nodemon db.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucaspbastos/CS-490.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lucaspbastos/CS-490/issues"
+  },
+  "homepage": "https://github.com/lucaspbastos/CS-490#readme"
+}
