@@ -1,5 +1,6 @@
 .vscode
 **/.DS_Store
+scratch.js
 # Logs
 logs
 *.log
