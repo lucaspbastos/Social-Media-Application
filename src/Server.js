@@ -2,8 +2,12 @@
 // CS-490 Alpha Project
 const express = require('express');
 const crypto = require('crypto');
+const db = require('./db')
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 /**
  * Contains options and parameters for hashing functions.
@@ -13,17 +17,21 @@ const hashConfig = {
     HASH_LEN: 256,
     HASH_ITERATIONS: 2**20,
     DIGEST: 'SHA512',
-    PEPPER: 'testing'
+    PEPPER: 'Yerr490'
 }
 
-app.get('/', (req,res)=> { 
-    // TODO: default landing
-    const index = 'hello!';
-    res.send(index);
-});
-
 app.post('/login', (req,res) => {
-    // TODO: login page
+    let body = req.body;
+    let username = body.user;
+    let password = body.pass;
+    try {
+        if (verifyUser(username, password)) {
+
+        }
+    } catch(e) {
+        throw e;
+    }
+    
 });
 
 /**
@@ -49,7 +57,7 @@ function createUser(username, password, role) {
     // TODO: insert username into database
     // TODO: insert role into database
 
-    const salt = generateSalt(SALT_LEN);
+    const salt = generateSalt(hashConfig.SALT_LEN);
     // TODO: insert salt into database in base64 .toString('base64')
 
 
@@ -74,9 +82,32 @@ function generateSalt(length) {
  * @param {String} username - Desired username.
  **/
 function getSalt(username) {
-    // TODO: get user salt from database
-    return Buffer;
+    const sqlQuery = "SELECT Salt from User where username = ?"
+    const results = db.pool.query(sqlQuery, [username], (error, results, fields) => {
+        if (error) {
+            throw error;
+        }
+        return results;
+    });
+    return Buffer.from(results, "Base64");
 }
+
+/**
+ * Gets user hashed password from database.
+ *
+ * @param {String} username - Desired username.
+ **/
+function getHashedSaltPepperPassword(username) {
+    const sqlQuery = "SELECT HashedSaltPepperPassword from User where username = ?"
+    const results = db.pool.query(sqlQuery, [username], (error, results, fields) => {
+        if (error) {
+            throw error;
+        }
+        return results;
+    });
+    return Buffer.from(results, "Base64");
+}
+
 
 /**
  * Gets user salt from database.
@@ -86,10 +117,10 @@ function getSalt(username) {
  **/
 function verifyUser(username, attemptedPassword) {
     // Generate attemptedHashedSaltedPepperedPassword from attemptedPassword, leave as Buffer type
+    const salt = getSalt(username);
     const attemptedHashedSaltedPepperedPassword = hashSaltPepperPassword(attemptedPassword, salt);
 
-    // TODO: Grab user's base64 hashedSaltedPepperPassword to compare and convert base64 to Buffer type
-    const usersHash = Buffer.from("", "base64");
+    const usersHash = getHashedSaltPepperPassword(username);
     return crypto.timingSafeEqual(attemptedHashedSaltedPepperedPassword, usersHash);
 }
 

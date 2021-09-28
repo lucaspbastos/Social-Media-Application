@@ -19,7 +19,6 @@ var pool = mariadb.createPool({
 });
 
 
- 
 // Expose a method to establish connection with MariaDB SkySQL
 module.exports = Object.freeze({
   pool: pool
