@@ -3,15 +3,22 @@ var mariadb = require('mariadb');
 
 // Prepare to connect to MySQL with your secret environment variables
 var pool = mariadb.createPool({
-    host: process.env.MYSQL_HOST,
-    port: process.env.MYSQL_PORT,
-    user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DB,
+    host: "127.0.0.1",
+    user: "root",
+    password: "CS490",
+    database: "CS490",
+    
 });
-
 
 // Expose a method to establish connection with MariaDB SkySQL
-module.exports = Object.freeze({
-  pool: pool
-});
+module.exports={
+  getConnection: function(){
+    return new Promise(function(resolve,reject){
+      pool.getConnection().then(function(connection){
+        resolve(connection);
+      }).catch(function(error){
+        reject(error);
+      });
+    });
+  }
+}
