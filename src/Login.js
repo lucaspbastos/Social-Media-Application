@@ -20,7 +20,7 @@ function Login() {
             event.preventDefault();
             console.log(user,pass)
 
-            fetch('http://localhost:3001/login', {
+            fetch('/login', {
               method: 'POST',
               headers: {"Content-Type": "application/json"},
               body: JSON.stringify({user,pass})

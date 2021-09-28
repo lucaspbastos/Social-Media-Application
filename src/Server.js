@@ -2,10 +2,12 @@
 // CS-490 Alpha Project
 const express = require('express');
 const crypto = require('crypto');
+const cors = require('cors')
 const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(cors())
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
