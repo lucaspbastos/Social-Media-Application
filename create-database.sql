@@ -10,5 +10,8 @@ CREATE TABLE User(
     PRIMARY KEY(ID)
 )
 
-INSERT into User values ((44532, "Mike", "wijefewi", "fdjwikeik", 0), (44531, "Mike", "wijefewi", "fdjwikeik", 0), (44533, "Mike", "wijefewi", "fdjwikeik", 0)
-(44535, "Mike", "wijefewi", "fdjwikeik", 0), (44539, "Mike", "wijefewi", "fdjwikeik", 0))
+INSERT into User values (44532, "Mike", "wijefewi", "fdjwikeik", 0);
+INSERT into User values (5464564, "Jeff", "sdfjhusd", "ddssdd", 1);
+INSERT into User values (4554, "Paul", "dgfg", "cdsadsd", 1);
+INSERT into User values (0788756, "Lucas", "fddfghtrgg", "dffghha", 0);
+INSERT into User values (8674, "Carlos", "dghfrdg", "saffd", 1);
