@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^12.8.3",
     "express": "^4.17.1",
     "mariadb": "^2.5.4",
     "react": "^17.0.2",
@@ -11,10 +14,30 @@
   "name": "cs-490",
   "description": "By: Tahmim Ahmed, Lucas Bastos, and Michael Galanaugh",
   "version": "0.1.0",
+  "private": true,
   "main": "src/Server.js",
   "devDependencies": {},
   "scripts": {
-    "test": "react-scripts test"
+    "test": "react-scripts test",
+    "start": "node src/Server.js && react-scripts start"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "repository": {
     "type": "git",
