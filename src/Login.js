@@ -20,15 +20,28 @@ function Login() {
             event.preventDefault();
             console.log(user,pass)
 
-            //Needs completion to recive updated back from backend
-            fetch('http://localhost:3001', {
+            fetch('http://localhost:3001/login', {
               method: 'POST',
               headers: {"Content-Type": "application/json"},
               body: JSON.stringify({user,pass})
 
-            }).then(()=>{
-              console.log("data sent")
-            })
+            }).then(res => {
+              return res.json();
+            }).then(function(data) {
+              console.log(data.login)
+              // Handle no user
+              console.log(data.role)
+              if (data.login) {
+                if (data.role === 1) {
+                  history.push("/admin")
+                } else {
+                  history.push("/user")
+                }
+              } else {
+                history.push("/invalid")
+              }
+              console.log(data.error)
+          })
             //history.push("/admin")
 
           }
@@ -50,8 +63,6 @@ function Login() {
           <br/>
           <input type="text" name="password" required value={pass} onChange={(e) => setPass(e.target.value)}/>
         </label>
-        <p>{user}</p>
-        <p>{pass}</p>
         <input type="submit" value="Submit" onClick={(e)=> handleClick(e,user,pass)}/>
       </form>
     );

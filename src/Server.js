@@ -25,28 +25,42 @@ app.post('/login', async (req, res) => {
     let password = req.body.pass;
     
     let conn;
+    let isUser;
+    let role;
+    let error;
     try {
         conn = await fetchConn();
 
         // Use Connection
-        var rows = await getSalt(conn, username);
-        if (rows) {
-            let salt = rows[0].Salt;
-            var isUser = await verifyUser(conn, username, salt, password);
-            let role;
-            if (isUser) {
-                var num = await getRole(conn, username);
-                role = num[0].AdminRole;
+        try {
+            var saltQuery = await getSalt(conn, username);
+            let salt = saltQuery[0].Salt; 
+            if (salt) {
+                isUser = await verifyUser(conn, username, salt, password);
+                if (isUser) {
+                    var roleQuery = await getRole(conn, username);
+                    role = roleQuery[0].AdminRole;
+                } else {
+                    role = 0;
+                }
+                
             } else {
+                // no Salt -> user exists
+                isUser = false;
                 role = 0;
             }
-            let response = {
-                'login': isUser,
-                'role': role
-            }
-            res.send(JSON.stringify(response));
+            error = null;
+        } catch(e) {
+            isUser = false;
+            role = 0;
+            error = e;
         }
-        // no Salt exists
+        let response = {
+            'login': isUser,
+            'role': role,
+            'error': error
+        }
+        res.send(JSON.stringify(response));
         
     } catch (err) {
         // Manage Errors
@@ -120,7 +134,7 @@ async function getSalt(conn, username) {
  *
  * @param {String} username - Desired username.
  **/
- async function getRole(conn, username) {
+async function getRole(conn, username) {
     let sqlQuery = "SELECT AdminRole from User where UserName=?"
     return await conn.query(sqlQuery, [username])
 }

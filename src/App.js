@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import Admin from './Admin'
 import User from './User'
 import Login from './Login'
+import Invalid from './Invalid'
 function App() {
   return (
     <Router>
@@ -15,6 +16,9 @@ function App() {
           </Route>
           <Route exact path="/user">
             <User/>
+          </Route>
+          <Route exact path="/invalid">
+            <Invalid/>
           </Route>
         </Switch>
     </Router>
