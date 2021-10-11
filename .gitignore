@@ -1,6 +1,7 @@
 .vscode
 **/.DS_Store
 scratch.js
+create-database.sql
 # Logs
 logs
 *.log
