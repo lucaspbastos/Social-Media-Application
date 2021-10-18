@@ -2,14 +2,14 @@
 // CS-490 Alpha Project
 const express = require('express');
 const crypto = require('crypto');
-const cors = require('cors')
+const cors = require('cors');
 const session = require('express-session');
 const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.set('trust proxy', 1);
-app.use(cors())
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
@@ -17,8 +17,7 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: { secure: true }
-  }))
-
+}));
 
 /**
  * Contains options and parameters for hashing functions.
@@ -41,7 +40,6 @@ app.post('/login',async (req, res) => {
     let error;
     try {
         conn = await fetchConn();
-
         // Use Connection
         try {
             var saltQuery = await getSalt(conn, username);
@@ -82,8 +80,33 @@ app.post('/login',async (req, res) => {
     }
 });
 
-// misc functions
+app.post('/logout', async (req, res) => { 
+    //TODO: fill in lougout
+    // destroy local cookie
+    // remove session from DB
+});
 
+app.post('/feed', async (req, res) => { 
+    //TODO: fill in post feed
+    // grab following list for user
+    // return last 50 posts containing user's following
+});
+
+app.post('/messages', async (req, res) => { 
+    //TODO: fill in message feed
+    // grab thread list involving user with messages within
+});
+
+app.post('/search', async (req, res) => { 
+    //TODO: fill in search results
+});
+
+app.post('/post', async (req, res) => { 
+    //TODO: fill in post details 
+});
+
+
+// misc functions
 async function fetchConn() {
     let conn = await pool.getConnection();
     return conn;
@@ -122,6 +145,22 @@ async function verifyCredentials(conn, username, salt, attemptedPassword) {
  **/
 function generateSalt(length) {
     return crypto.randomBytes(length/2);
+}
+
+function getFeedForUserID(conn, userID) {
+    // Get following list
+    const following = getFollowingListForUserID(conn, userID);
+    let returnFeed = [];
+
+    for (followingUserID in following) {
+        const posts = getPostsFromUserID(conn, followingUserID);
+        for (postID in posts) {
+            const comments = getCommentsFromPostID(conn, postID);
+        }
+        // TODO: Fix
+        returnFeed.push({posts, comments});
+    }
+    return returnFeed;
 }
 
 // get functions
@@ -209,8 +248,8 @@ async function getCommentsFromPostID(conn, postID) {
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
-async function getMessagesFromUserID(conn, userID) {
-    let sqlQuery = "SELECT * from Messages where userID=?"
+async function getThreadsFromUserID(conn, userID) {
+    let sqlQuery = "SELECT * from Threads where userID=?"
     return await conn.query(sqlQuery, [userID])
 }
 
