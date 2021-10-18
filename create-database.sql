@@ -33,13 +33,14 @@ CREATE TABLE Comment(
     blockStatus int NOT NULL,
     PRIMARY KEY(commentID),
     FOREIGN KEY(commentUserID) REFERENCES User(ID)
+    FOREIGN KEY(originalPostID) REFERENCES Post(postID)
 
 );
 
 CREATE TABLE Messages(
     messageID int AUTO_INCREMENT UNIQUE NOT NULL,
     senderUserID int NOT NULL,
-    recipientUserID varchar(1000) NOT NULL,
+    recipientUserIDs varchar(1000) NOT NULL,
     messageText varchar(1000),
     messageDate datetime NOT NULL,
     PRIMARY KEY(messageID),
@@ -56,17 +57,13 @@ CREATE TABLE SessionsTable(
 
 );
 
-INSERT into User values (44532, "Mike", "wijefewi", "fdjwikeik", 0);
-INSERT into User values (5464564, "Jeff", "sdfjhusd", "ddssdd", 1);
-INSERT into User values (4554, "Paul", "dgfg", "cdsadsd", 1);
-INSERT into User values (0788756, "Lucas", "fddfghtrgg", "dffghha", 0);
-INSERT into User values (8674, "Carlos", "dghfrdg", "saffd", 1);
+CREATE TABLE Thread(
+    threadID int AUTO_INCREMENT NOT NULL,
+    threadName varchar(255) NOT NULL,
+    userIDs varchar(1000) NOT NULL,
+    lastMessageID int NOT NULL,
+    PRIMARY KEY(threadID),
+    FOREIGN KEY(lastMessageID) REFERENCES Messages(messageID)
 
-INSERT into Post values ()
-    postID int AUTO_INCREMENT UNIQUE NOT NULL,
-    postUserID int not NULL,
-    fileNames varchar(1000),
-    postText varchar(1000),
-    postDate datetime NOT NULL,
-    blockStatus int NOT NULL,
-    PRIMARY KEY(postID)
+);
+
