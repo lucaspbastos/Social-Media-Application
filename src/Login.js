@@ -2,6 +2,7 @@ import './App.css';
 import {useState } from 'react';
 import { useHistory } from "react-router-dom";
 
+import AuthData from './AuthData';
 
 function Login() {
     const [user,setUser]=useState('');
@@ -18,9 +19,12 @@ function Login() {
       function handleClick(event,user,pass){
           if(user!=='' && pass!==''){
             event.preventDefault();
-            console.log(user,pass)
-
-            fetch('/login', {
+            AuthData.setName(user);
+            console.log(AuthData.getName())
+            AuthData.setAdmin(1)
+            AuthData.setAuth(true)            
+          
+            /*fetch('/login', {
               method: 'POST',
               headers: {"Content-Type": "application/json"},
               body: JSON.stringify({user,pass})
@@ -41,8 +45,8 @@ function Login() {
                 history.push("/invalid")
               }
               console.log(data.error)
-          })
-            //history.push("/admin")
+          })*/
+            history.push("/Posts")
 
           }
           else{

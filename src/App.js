@@ -1,9 +1,12 @@
 import './App.css';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import Admin from './Admin'
-import User from './User'
 import Login from './Login'
 import Invalid from './Invalid'
+import Posts from './Posts/Posts'
+import Messages from './Messaging/Messages'
+import Search from './Search'
+
 function App() {
   return (
     <Router>
@@ -14,14 +17,45 @@ function App() {
           <Route exact path="/admin">
             <Admin/>
           </Route>
-          <Route exact path="/user">
-            <User/>
+          <Route exact path="/posts" >
+            <Posts/>
+          </Route>
+          <Route exact path="/messages" >
+            <Messages/>
+          </Route>
+          <Route exact path="/search">
+            <Search/> 
           </Route>
           <Route exact path="/invalid">
-            <Invalid/>
+            <Invalid/> 
           </Route>
         </Switch>
     </Router>
   );
 }
 export default App;
+
+/*
+<Switch>
+          <Route exact path="/">
+            <Login/>
+          </Route>
+          <Route exact path={ userProfile.getAdmin() === 1 ? "/admin" : "/posts" } />
+            <Posts/>
+          </Route>
+          <Route exact path="/invalid">
+            <Invalid/> 
+          </Route>
+        </Switch>
+*/
+
+/*
+make a form
+select user from a list then
+textbox come ups send texts
+when the sends message
+store to db display on website based on date time
+
+on the other side same thing
+
+*/
