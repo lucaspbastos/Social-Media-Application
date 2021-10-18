@@ -3,13 +3,22 @@
 const express = require('express');
 const crypto = require('crypto');
 const cors = require('cors')
+const session = require('express-session');
 const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1);
 app.use(cors())
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: true }
+  }))
+
 
 /**
  * Contains options and parameters for hashing functions.
@@ -45,7 +54,6 @@ app.post('/login',async (req, res) => {
                 } else {
                     role = 0;
                 }
-                
             } else {
                 // no Salt -> user exists
                 isUser = false;
@@ -94,10 +102,11 @@ function hashSaltPepperPassword(password, salt) {
 /**
  * Verifies if username and login are correct.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} username - Username to check.
  * @param {String} attemptedPassword - Password to attempt.
  **/
- async function verifyCredentials(conn, username, salt, attemptedPassword) {
+async function verifyCredentials(conn, username, salt, attemptedPassword) {
     // Generate attemptedHashedSaltedPepperedPassword from attemptedPassword, leave as Buffer type
     const attemptedHashedSaltedPepperedPassword = hashSaltPepperPassword(attemptedPassword, salt);
     let rows = await getHashedSaltPepperPassword(conn, username);
@@ -120,6 +129,7 @@ function generateSalt(length) {
 /**
  * Gets user salt from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
 async function getSalt(conn, userID) {
@@ -130,9 +140,10 @@ async function getSalt(conn, userID) {
 /**
  * Gets user role from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
- async function getRole(conn, userID) {
+async function getRole(conn, userID) {
     let sqlQuery = "SELECT AdminRole from User where userID=?"
     return await conn.query(sqlQuery, [userID])
 }
@@ -140,9 +151,10 @@ async function getSalt(conn, userID) {
 /**
  * Gets username from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
- async function getUsername(conn, userID) {
+async function getUsername(conn, userID) {
     let sqlQuery = "SELECT Username from User where userID=?"
     return await conn.query(sqlQuery, [userID])
 }
@@ -150,6 +162,7 @@ async function getSalt(conn, userID) {
 /**
  * Gets user hashed password from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
 async function getHashedSaltPepperPassword(conn, userID) {
@@ -160,6 +173,7 @@ async function getHashedSaltPepperPassword(conn, userID) {
 /**
  * Gets posts for userID from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired poster's userID.
  **/
 async function getPostsFromUserID(conn, userID) {
@@ -170,6 +184,7 @@ async function getPostsFromUserID(conn, userID) {
 /**
  * Gets post from a postID from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} postID - Desired postID.
  **/
 async function getPostFromPostID(conn, postID) {
@@ -180,6 +195,7 @@ async function getPostFromPostID(conn, postID) {
 /**
  * Gets comments from a postID from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} postID - Desired postID.
  **/
 async function getCommentsFromPostID(conn, postID) {
@@ -190,6 +206,7 @@ async function getCommentsFromPostID(conn, postID) {
 /**
  * Gets messages from a userID from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
 async function getMessagesFromUserID(conn, userID) {
@@ -200,9 +217,10 @@ async function getMessagesFromUserID(conn, userID) {
 /**
  * Gets username from a userID from database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
- async function getUsernameFromUserID(conn, userID) {
+async function getUsernameFromUserID(conn, userID) {
     let sqlQuery = "SELECT username from User where userID=?"
     return await conn.query(sqlQuery, [userID])
 }
@@ -212,25 +230,28 @@ async function getMessagesFromUserID(conn, userID) {
 /**
  * Creates a new user in the database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} username - Desired username.
  * @param {String} password - Desired password.
  * @param {String} role - Desired role.
  **/
- function createUser(username, password, role) {
+ function createUser(conn, username, password, role) {
     const salt = generateSalt(hashConfig.SALT_LEN);
     const hashedSaltedPepperedPassword = hashSaltPepperPassword(password, salt.toString('base64'));
     let sqlQuery = "INSERT INTO User VALUES (?, ?, ?, ?, ?)"
     return await conn.query(sqlQuery, [username, hashedSaltedPepperedPassword.toString('base64'), salt.toString('base64'), role, Date.now()])
+    //TODO: handle taken username
 }
 
 /**
  * Creates a post by userID into database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  * @param {String} postText - Desired post text.
  * @param {String} postAttachments - Desired post attachments.
  **/
- async function createPostFromUserID(conn, userID, postText, postAttachments) {
+async function createPostFromUserID(conn, userID, postText, postAttachments) {
     let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?)"
     return await conn.query(sqlQuery, [userID, postText, postAttachments, Date.now()])
 }
@@ -238,35 +259,27 @@ async function getMessagesFromUserID(conn, userID) {
 /**
  * Blocks a comment by userID for postID into database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  * @param {String} postID - Desired postID to comment under.
  * @param {String} commentText - Desired comment text.
  * @param {String} commentAttachments - Desired comment attachments.
  **/
- async function createCommentFromUserIDForPostID(conn, userID, postID, commentText, commentAttachments) {
+async function createCommentFromUserIDForPostID(conn, userID, postID, commentText, commentAttachments) {
     let sqlQuery = "INSERT INTO Comments WHERE VALUES (?, ?, ?, ?, ?)"
     return await conn.query(sqlQuery, [userID, postID, commentText, commentAttachments, Date.now()])
 }
 
 /**
- * Creates a comment by userID for postID into database.
- *
- * @param {String} userID - Desired userID.
- **/
- async function createPostFromUserID(conn, userID, postText, postAttachments) {
-    let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?)"
-    return await conn.query(sqlQuery, [userID, postText, postAttachments, Date.now()])
-}
-
-/**
  * Creates a message from a sender userID to recipient userID into database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} senderUserID - Desired sender userID.
- * @param {String} recipientUserID - Desired recipient userID.
+ * @param {String[]} recipientUserIDs - Desired recipient userID(s).
  * @param {String} messageText - Desired message text.
  * @param {String} messageAttachments - Desired message attachments.
  **/
-async function createMessageFromUserIDToUserID(conn, senderUserID, recipientUserID, messageText, messageAttachments) {
+async function createMessageFromUserIDToUserID(conn, senderUserID, recipientUserIDs, messageText, messageAttachments) {
     let sqlQuery = "INSERT INTO Messages VALUES (?, ?, ?, ?, ?)"
     return await conn.query(sqlQuery, [senderUserID, recipientUserID, messageText, messageAttachments, Date.now()])
 }
@@ -276,23 +289,50 @@ async function createMessageFromUserIDToUserID(conn, senderUserID, recipientUser
 /**
  * Blocks post by postID into database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} postID - Desired postID to block.
  **/
- async function blockPost(conn, postID) {
+async function blockPost(conn, postID) {
+    //TODO: check admin role
     let sqlQuery = "UPDATE Posts SET blockStatus=? WHERE postID=?"
     return await conn.query(sqlQuery, [1, postID])
 }
 
 /**
+ * Unblocks post by postID into database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} postID - Desired postID to unblock.
+ **/
+async function unblockPost(conn, postID) {
+    //TODO: check admin role
+    let sqlQuery = "UPDATE Posts SET blockStatus=? WHERE postID=?"
+    return await conn.query(sqlQuery, [0, postID])
+}
+
+/**
  * Blocks comment by commentID into database.
  *
+ * @param {Promise<any>} conn - Pool connection.
  * @param {String} commentID - Desired commentID to block.
  **/
- async function blockComment(conn, commentID) {
+async function blockComment(conn, commentID) {
+    //TODO: check admin role
     let sqlQuery = "UPDATE Comment SET blockStatus=? WHERE commentID=?"
     return await conn.query(sqlQuery, [1, commentID])
 }
 
+/**
+ * Unblocks comment by commentID into database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} commentID - Desired commentID to unblock.
+ **/
+ async function unblockComment(conn, commentID) {
+    //TODO: check admin role
+    let sqlQuery = "UPDATE Comment SET blockStatus=? WHERE commentID=?"
+    return await conn.query(sqlQuery, [0, commentID])
+}
 
 // Run web server
 app.listen(PORT, () => console.log("Listening on port %s", PORT));
