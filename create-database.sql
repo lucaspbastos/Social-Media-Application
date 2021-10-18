@@ -19,6 +19,7 @@ CREATE TABLE Post(
     postDate datetime NOT NULL,
     blockStatus int NOT NULL,
     PRIMARY KEY(postID)
+    FOREIGN KEY(postUserID) REFERENCES User(ID)
 );
 
 CREATE TABLE Comment(
@@ -31,6 +32,8 @@ CREATE TABLE Comment(
     commentDate datetime NOT NULL,
     blockStatus int NOT NULL,
     PRIMARY KEY(commentID)
+    FOREIGN KEY(commentUserID) REFERENCES User(ID)
+
 );
 
 CREATE TABLE Messages(
@@ -40,6 +43,8 @@ CREATE TABLE Messages(
     messageText varchar(1000),
     messageDate datetime NOT NULL,
     PRIMARY KEY(messageID)
+    FOREIGN KEY(senderUserID) REFERENCES User(ID)
+
 );
 
 CREATE TABLE SessionsTable(
@@ -47,6 +52,8 @@ CREATE TABLE SessionsTable(
     sessionString varchar(255),
     sessionDatetime datetime,
     PRIMARY KEY(sessionUserID)
+    FOREIGN KEY(senderUserID) REFERENCES User(ID)
+
 );
 
 INSERT into User values (44532, "Mike", "wijefewi", "fdjwikeik", 0);
@@ -55,3 +62,11 @@ INSERT into User values (4554, "Paul", "dgfg", "cdsadsd", 1);
 INSERT into User values (0788756, "Lucas", "fddfghtrgg", "dffghha", 0);
 INSERT into User values (8674, "Carlos", "dghfrdg", "saffd", 1);
 
+INSERT into Post values ()
+    postID int AUTO_INCREMENT UNIQUE NOT NULL,
+    postUserID int not NULL,
+    fileNames varchar(1000),
+    postText varchar(1000),
+    postDate datetime NOT NULL,
+    blockStatus int NOT NULL,
+    PRIMARY KEY(postID)
