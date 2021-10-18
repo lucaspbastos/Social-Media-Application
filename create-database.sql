@@ -18,7 +18,7 @@ CREATE TABLE Post(
     postText varchar(1000),
     postDate datetime NOT NULL,
     blockStatus int NOT NULL,
-    PRIMARY KEY(postID)
+    PRIMARY KEY(postID),
     FOREIGN KEY(postUserID) REFERENCES User(ID)
 );
 
@@ -31,7 +31,7 @@ CREATE TABLE Comment(
     fileNames varchar(1000),
     commentDate datetime NOT NULL,
     blockStatus int NOT NULL,
-    PRIMARY KEY(commentID)
+    PRIMARY KEY(commentID),
     FOREIGN KEY(commentUserID) REFERENCES User(ID)
 
 );
@@ -42,7 +42,7 @@ CREATE TABLE Messages(
     recipientUserID varchar(1000) NOT NULL,
     messageText varchar(1000),
     messageDate datetime NOT NULL,
-    PRIMARY KEY(messageID)
+    PRIMARY KEY(messageID),
     FOREIGN KEY(senderUserID) REFERENCES User(ID)
 
 );
@@ -51,8 +51,8 @@ CREATE TABLE SessionsTable(
     sessionUserID int NOT NULL,
     sessionString varchar(255),
     sessionDatetime datetime,
-    PRIMARY KEY(sessionUserID)
-    FOREIGN KEY(senderUserID) REFERENCES User(ID)
+    PRIMARY KEY(sessionUserID),
+    FOREIGN KEY(sessionUserID) REFERENCES User(ID)
 
 );
 
