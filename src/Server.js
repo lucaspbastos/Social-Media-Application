@@ -6,7 +6,7 @@ const cors = require('cors');
 const session = require('express-session');
 const pool = require('./db');
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.SERVER_PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -125,7 +125,6 @@ app.post('/createPost', async (req, res) => {
     let username = req.body.username;
     let role = req.body.role;
     let sessionString = req.body.sessionString;
-    console.log(sessionString);
     let postText = req.body.text;
     let postAttachments = req.body.imgUrl;
     let conn;
@@ -379,6 +378,68 @@ app.post('/blockPost', async (req, res) => {
             }
             let response = {
                 'blocked': blocked,
+                'error': error
+            }
+            res.send(JSON.stringify(response));
+            
+        } catch (err) {
+            // Manage Errors
+            console.log(err)
+            res.send({error: err});
+        } finally {
+            // Close Connection
+            if (conn) conn.end();
+        }
+    }
+});
+
+app.post('/createUser', async (req, res) => { 
+    let username = req.body.username;
+    let role = req.body.role;
+    let sessionString = req.body.sessionString;
+
+    let newUsername = req.body.newUsername;
+    let password = req.body.password;
+
+    let passAuth = false;
+    let created = false;
+    let error = null;
+
+    //check session
+    try {
+        conn = await fetchConn();
+        const userID = await getUserID(conn, username);
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            passAuth = true;
+        } else {
+            res.send({
+                'created': false,
+                'error': 'bad auth'
+            });
+        }
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
+
+    if (passAuth) {
+        try {
+            conn = await fetchConn();
+            // Use Connection
+            try {
+                if (role == 1) {
+                    created = await createUser(conn, newUsername, password, 0);
+                }
+            } catch(e) {
+                error = e;
+            }
+            let response = {
+                'created': created,
                 'error': error
             }
             res.send(JSON.stringify(response));
@@ -667,13 +728,16 @@ async function getMessagesFromThreadID(conn, threadID) {
  * @param {String} password - Desired password.
  * @param {String} role - Desired role.
  **/
- function createUser(conn, username, password, role) {
-    const salt = generateSalt(hashConfig.SALT_LEN);
+ async function createUser(conn, username, password, role) {
+    const salt = generateSalt(hashConfig.SALT_LEN).toString('base64');
     const hashedSaltedPepperedPassword = hashSaltPepperPassword(password, salt.toString('base64'));
-    let sqlQuery = "INSERT INTO User VALUES (?, ?, ?, ?, ?)"
-    const time = Date.now();
-    return conn.query(sqlQuery, [username, hashedSaltedPepperedPassword.toString('base64'), salt.toString('base64'), role, time]);
-    //TODO: handle taken username
+    let sqlQuery = "INSERT INTO Users VALUES (?, ?, ?, ?, ?)"
+    //const epochTime = Date.now()/1000;
+    const row = await conn.query(sqlQuery, [0, username, hashedSaltedPepperedPassword.toString('base64'), salt, role]);
+    if (row.constructor.name == "OkPacket") {
+        return true;
+    }
+    return false;
 }
 
 /**

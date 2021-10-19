@@ -14,10 +14,10 @@ function Admin() {
     e.preventDefault();
     if(usr!=='' && pass!==''){
       console.log(usr,pass)
-        /*fetch('/admin', {
+        /*fetch('/createUser', {
           method: 'POST',
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), username: usr, password: pass})
+          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), newUsername: usr, password: pass})
 
         }).then(res => {
           return res.json();
