@@ -8,16 +8,16 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.set('trust proxy', 1);
+//app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(session({
+/*app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: { secure: true }
-}));
+}));*/
 
 /**
  * Contains options and parameters for hashing functions.
@@ -45,10 +45,10 @@ app.post('/login', async (req, res) => {
             let userID = await getUserID(conn, username);
             let salt = await getSalt(conn, userID);
             if (salt) {
-                isUser = await verifyCredentials(conn, username, salt, password);
+                isUser = await verifyCredentials(conn, userID, salt, password);
+                //TODO: generate session
                 if (isUser) {
-                    var roleQuery = await getRole(conn, username);
-                    role = roleQuery[0].AdminRole;
+                    role = await getRole(conn, userID);
                 } else {
                     role = 0;
                 }
@@ -87,37 +87,79 @@ app.post('/logout', async (req, res) => {
 });
 
 app.post('/getPosts', async (req, res) => { 
-    //TODO: fill in post feed
-    // grab following list for user
-    // return last 50 posts containing user's following
+    //TODO: only grab posts from users following
     let conn;
-    let error;
+    let error = null;
+    let postsArray = [];
     try {
         conn = await fetchConn();
         // Use Connection
         try {
-            var postQuery = await getPosts(conn);
-            if (salt) {
-                isUser = await verifyCredentials(conn, username, salt, password);
-                if (isUser) {
-                    var roleQuery = await getRole(conn, username);
-                    role = roleQuery[0].AdminRole;
-                } else {
-                    role = 0;
-                }
-            } else {
-                // no Salt -> user exists
-                isUser = false;
-                role = 0;
+            let postQuery = await getPosts(conn);
+            for (post in postQuery) {
+                let commentsArray = await getCommentsFromPostID(conn, post.postID);
+                post["comments"] = commentsArray;
+                postsArray.push(post);
             }
-            error = null;
         } catch(e) {
-            isUser = false;
-            role = 0;
             error = e;
         }
         let response = {
-            'posts': postsObject,
+            'posts': postsArray,
+            'error': error
+        }
+        res.send(JSON.stringify(response));
+        
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
+});
+
+app.post('/createPost', async (req, res) => { 
+    //TODO: fill in message feed
+    // grab thread list involving user with messages within
+});
+
+app.post('/search', async (req, res) => { 
+    let searchQuery = req.body.query;
+    let conn;
+    let error = null;
+    let resultsObject = {};
+    let userObject = {};
+    let postsArray = [];
+    try {
+        conn = await fetchConn();
+        // Use Connection
+        try {
+            // find users
+            let user = getID(searchQuery);
+            if (Boolean(user)) {
+                userObject["userID"] = user;
+                userObject["username"] = searchQuery;
+            }
+
+            //find posts
+            let postQuery = await getPosts(conn);
+            for (post in postQuery) {
+                if (post.postText.split().includes(searchQuery)) {
+                    let commentsArray = await getCommentsFromPostID(conn, post.postID);
+                    post["comments"] = commentsArray;
+                    postsArray.push(post);
+                }
+            }
+            resultsObject["user"] = userObject;
+            resultsObject["posts"] = postsArray;
+        } catch(e) {
+            error = e;
+        }
+        let response = {
+            'results': resultsObject,
+            'error': error
         }
         res.send(JSON.stringify(response));
         
@@ -130,17 +172,39 @@ app.post('/getPosts', async (req, res) => {
         if (conn) conn.end();
     }
 
-app.post('/createPost', async (req, res) => { 
-    //TODO: fill in message feed
-    // grab thread list involving user with messages within
 });
 
-app.post('/search', async (req, res) => { 
-    //TODO: fill in search results
-});
-
-app.post('/post', async (req, res) => { 
-    //TODO: fill in post details 
+app.post('/getThreads', async (req, res) => { 
+    let conn;
+    let error = null;
+    let threadsArray = [];
+    try {
+        conn = await fetchConn();
+        // Use Connection
+        try {
+            let threadQuery = await getThreads(conn);
+            for (thread in threadQuery) {
+                let messagesArray = await getMessagesFromThreadID(conn, thread.threadID);
+                thread["messages"] = messagesArray;
+                threadsArray.push(thread);
+            }
+        } catch(e) {
+            error = e;
+        }
+        let response = {
+            'threads': threadsArray,
+            'error': error
+        }
+        res.send(JSON.stringify(response));
+        
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
 });
 
 
@@ -161,17 +225,17 @@ function hashSaltPepperPassword(password, salt) {
 }
 
 /**
- * Verifies if username and login are correct.
+ * Verifies if userID and login are correct.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} username - Username to check.
+ * @param {String} userID - UserID to check.
  * @param {String} salt - Salt to check.
  * @param {String} attemptedPassword - Password to attempt.
  **/
-async function verifyCredentials(conn, username, salt, attemptedPassword) {
+async function verifyCredentials(conn, userID, salt, attemptedPassword) {
     // Generate attemptedHashedSaltedPepperedPassword from attemptedPassword, leave as Buffer type
     const attemptedHashedSaltedPepperedPassword = hashSaltPepperPassword(attemptedPassword, salt);
-    let rows = await getHashedSaltPepperPassword(conn, username);
+    let rows = await getHashedSaltPepperPassword(conn, userID);
     let usersHash = rows[0].HashedSaltPepperPassword;
 
     return crypto.timingSafeEqual(attemptedHashedSaltedPepperedPassword, Buffer.from(usersHash, 'base64'));
@@ -230,7 +294,7 @@ function getFeedForUserID(conn, userID) {
  * @param {String} userID - Desired userID.
  **/
 async function getSalt(conn, userID) {
-    let sqlQuery = "SELECT Salt from Users where userID=?";
+    let sqlQuery = "SELECT salt from Users where userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
     return ret[0];
 }
@@ -242,9 +306,15 @@ async function getSalt(conn, userID) {
  * @param {String} userID - Desired userID.
  **/
 async function getRole(conn, userID) {
-    let sqlQuery = "SELECT AdminRole from Users where userID=?";
+    let sqlQuery = "SELECT adminRole from Users where userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
-    return ret[0];
+    let res;
+    try {
+        res = ret.slice(0)[0].adminRole; //returns as object within array along with meta, remove meta
+    } catch(e) {
+        res = null;
+    }
+    return res;
 }
 
 /**
@@ -258,7 +328,25 @@ async function getUsername(conn, userID) {
     let ret =  await conn.query(sqlQuery, [userID])
     let res;
     try {
-        res = ret.slice(0)[0].UserName; //returns as object within array along with meta, remove meta
+        res = ret.slice(0)[0].username; //returns as object within array along with meta, remove meta
+    } catch(e) {
+        res = null;
+    }
+    return res;
+}
+
+/**
+ * Gets userID from database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} username - Desired username.
+ **/
+ async function getUserID(conn, username) {
+    let sqlQuery = "SELECT userID from Users where username=?";
+    let ret =  await conn.query(sqlQuery, [username])
+    let res;
+    try {
+        res = ret.slice(0)[0].userID; //returns as object within array along with meta, remove meta
     } catch(e) {
         res = null;
     }
@@ -284,6 +372,7 @@ async function getHashedSaltPepperPassword(conn, userID) {
 }
 
 /**
+ * TODO: update format
  * Gets posts for userID from database.
  *
  * @param {Promise<any>} conn - Pool connection.
@@ -304,6 +393,27 @@ async function getPostsFromUserID(conn, userID) {
     let sqlQuery = "SELECT * from Posts LIMIT 100";
     let ret = await conn.query(sqlQuery);
     return ret.slice(0);
+}
+
+/**
+ * Gets all threads from database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} userID - Match userID.
+ **/
+ async function getThreadsWithUserID(conn, userID) {
+    let sqlQuery = "SELECT * from Threads LIMIT 100";
+    let ret = await conn.query(sqlQuery);
+    let threadArray = ret.slice(0);
+    let res = [];
+    threadArray.forEach((thread) => {
+        let parsedUserIDs = JSON.parse(thread.userIDs);
+        if (parsedUserIDs.includes(userID)) {
+            res.push(thread)
+        }
+    });
+    
+    return res;
 }
 
 
@@ -342,6 +452,13 @@ async function getThreadsFromUserID(conn, userID) {
     return await conn.query(sqlQuery, [userID])
 }
 
+async function getMessagesFromThreadID(threadID) {
+    let conn = await fetchConn();
+    let sqlQuery = "SELECT * from Messages where threadID=?";
+    let ret = await conn.query(sqlQuery, [threadID]);
+    return ret.slice(0);
+}
+
 // set functions
 
 /**
@@ -356,7 +473,8 @@ async function getThreadsFromUserID(conn, userID) {
     const salt = generateSalt(hashConfig.SALT_LEN);
     const hashedSaltedPepperedPassword = hashSaltPepperPassword(password, salt.toString('base64'));
     let sqlQuery = "INSERT INTO User VALUES (?, ?, ?, ?, ?)"
-    return await conn.query(sqlQuery, [username, hashedSaltedPepperedPassword.toString('base64'), salt.toString('base64'), role, Date.now()])
+    const time = Date.now();
+    return conn.query(sqlQuery, [username, hashedSaltedPepperedPassword.toString('base64'), salt.toString('base64'), role, time]);
     //TODO: handle taken username
 }
 
