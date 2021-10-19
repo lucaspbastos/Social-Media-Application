@@ -2,35 +2,35 @@ import styles from './PostCards.module.scss'
 import { useState } from 'react';
 import Comment from './Comment'
 import AuthData from '../AuthData';
-function PostCards({ id, caption, imgUrl}) {
+function PostCards({ id, caption, imgUrl }) {
     const [comment,setComment]=useState('');
 
     
     function handleBlock(e, ids){
         //remove post from db
         e.preventDefault();
-        /*fetch('/blockPost', {
+        fetch('http://localhost:3002/blockPost', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
 
-          }).then(res => {
+        }).then(res => {
             return res.json();
-          }).then(function(data) {
+        }).then(function(data) {
             console.log(data.blocked)
             window.location.reload(true);
 
-        })*/
+        })
         
     }
     function handleComment(e,pstid,cmnt){
         
         e.preventDefault();
         console.log("comment id "+pstid+" comment is "+cmnt)  
-        /*fetch('/createComment', {
+        fetch('/createComment', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), text: cmnt, attachment: "", postID: pstid})
+            body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), commentText: cmnt, commentAttachments: "", postID: pstid})
 
           }).then(res => {
             return res.json();
@@ -38,7 +38,7 @@ function PostCards({ id, caption, imgUrl}) {
             console.log(data.created)
             window.location.reload(true);
 
-        })*/
+        })
         
     }
     return (

@@ -126,7 +126,7 @@ app.post('/createPost', async (req, res) => {
     let role = req.body.role;
     let sessionString = req.body.sessionString;
     let postText = req.body.text;
-    let postAttachments = req.body.imgUrl;
+    let postAttachments = req.body.attachment;
     let conn;
     let passAuth = false;
     let error = null;
@@ -233,23 +233,22 @@ app.post('/search', async (req, res) => {
 });
 
 app.post('/getThreads', async (req, res) => { 
-    const userID = Number(req.body.userID);
+    const username = req.body.username;
     let role = req.body.role;
     let sessionString = req.body.sessionString;
     let postText = req.body.text;
     let postAttachments = req.body.imgUrl;
+    let lastThread = req.body.threadID;
     let conn;
 
     try {
         conn = await fetchConn();
+        const userID = await getUserID(conn, username);
         const authCheck = await verifyAuthSession(conn, userID, sessionString);
-        if (!authCheck) {
-            res.end({'error': 'bad session'});
-        }
-        return;
+        
     } catch (err) {
         // Manage Errors
-        console.log(err)
+        console.log("in first try:", err)
         res.send({error: err});
     } finally {
         // Close Connection
@@ -264,6 +263,7 @@ app.post('/getThreads', async (req, res) => {
         conn = await fetchConn();
         // Use Connection
         try {
+            const userID = await getUserID(conn, username);
             let threads = await getThreadsWithUserID(conn, userID);
             for (let thread of threads) {
                 const threadID = thread.threadID;
@@ -271,14 +271,15 @@ app.post('/getThreads', async (req, res) => {
                 thread["messages"] = messagesArray;
                 threadsArray.push(thread);
             }
-        } catch(e) {
-            error = e;
-        }
-        const response = {
+            const response = {
             'threads': threadsArray,
             'error': error
         }
         res.send(JSON.stringify(response));
+        } catch(e) {
+            error = e;
+        }
+        
         
     } catch (err) {
         // Manage Errors

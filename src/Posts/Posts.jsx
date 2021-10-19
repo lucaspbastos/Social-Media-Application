@@ -72,6 +72,7 @@ function Posts() {
             }).then(res => {
                 return res.json();
             }).then(function(data) {
+                console.log(data)
                 setnewPost(true)
             })
 
@@ -125,7 +126,7 @@ function Posts() {
                 <div>
                     {dataObject.posts.map((post)=>
                         <div key={post.id}>
-                            <PostCards id={post.id} caption={post.text} imgUrl={post.imgUrl}/>
+                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames}/>
                             
                             <br/>
                         </div>

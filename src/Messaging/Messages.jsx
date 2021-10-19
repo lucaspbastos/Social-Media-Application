@@ -11,12 +11,18 @@ function Messages() {
   const [actualUser,setactualUser]=useState('');
   const[message,setMessage]=useState('')
   const[clicked,setClicked]=useState(false)
-  //const[messageObject,setmessageObject]=useState(false)
+  const[threadObject,setthreadObject]=useState({
+    threads: [{messages: [{
+
+      }]
+    }]
+});
+
 
     useEffect(()=>{
       if(AuthData.getLastThread!==''){
           console.log(AuthData.getLastThread())
-          /*fetch('/getThreads', {
+          fetch('http://localhost:3002/getThreads', {
               method: 'POST',
               headers: {"Content-Type": "application/json"},
               body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: AuthData.getLastThread()})
@@ -24,8 +30,9 @@ function Messages() {
             }).then(res => {
               return res.json();
             }).then(function(data){
-                setmessageObject(data)
-          })*/
+              console.log(data.threads[0].userIDs)
+              setthreadObject(data)
+          })
       }
       else{
         console.log("no thread chosen")
@@ -36,26 +43,12 @@ function Messages() {
       return <Redirect to="/"/>;
   }
 
-//get rid of placeholder values
-  const messageObject= { 
-    threads: [
-    {id: 1, userIDs: ["1", "2", "3", "4"], name: "Cool kids chat", messages: [
-        {id: 1, fromUser: 1, message: "Yerrr", datetime: 1294131780237},
-        {id: 2, fromUser: 4, message: "Yo", datetime: 1294131780269}
-      ]}, {id: 2, userIDs: ["1", "2"], name: "Bob", messages: [
-        {id: 1, fromUser: 1, message:"Hi", datetime:1294131780237},
-        {id: 2, fromUser: 2, message:"Yo", datetime: 1294131780269},
-        {id: 3, fromUser: 1, message:"Bye", datetime: 1294131780532},
-      ]}
-    ]
-  } 
-
   //for setting thread
-  function handleSubmit(event,usr){
+  function handleSubmit(event,thread){
     event.preventDefault();
-    if(usr !==""){
-      setactualUser(usr)
-      AuthData.setLastThread(usr)
+    if(thread !==""){
+      setactualUser(thread)
+      AuthData.setLastThread(thread)
       console.log("thread is "+AuthData.getLastThread())
       setClicked(true)
 
@@ -68,17 +61,17 @@ function Messages() {
     e.preventDefault();
     if(msg!==''){
       console.log("curre user "+currUsr+ " message is "+msg)
-        /*fetch('/createMessage', {
+        fetch('http://localhost:3002/createMessage', {
           method: 'POST',
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: currUsr, text: msg, attachment: ""})
+          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: currUsr, messageText: msg, messageAttachments: ""})
 
         }).then(res => {
           return res.json();
         }).then(function(data) {
           console.log(data.created)
           window.location.reload(true);
-      })*/
+      })
     }
       
   }
@@ -97,10 +90,11 @@ function Messages() {
             Select a Thread: 
             <br/>
             <select value={users} onChange={(e)=>setUsers(e.target.value)} >
-            <option value={""}>{""}</option>
-            {messageObject.threads.map(item => {
-                  return (<option key={item.id} value={item.id}>{item.userIDs.toString()}</option>);
-                })}
+            {/* {threadObject.threads.map(thread => {
+                  return (<option key={thread.threadID} value={thread.threadID}>{thread.userIDs.toString()}</option>);
+                })} */}
+            <option></option>
+            <option>[2, 3]</option>
             </select>
           </label>
           <br/>
@@ -119,11 +113,11 @@ function Messages() {
       </div>
 
       <div>
-      {messageObject.threads.map((index)=>
-                        <div key={index.id}>
-                            {index.messages.map((idx)=>
-                                <div key={idx.id }>
-                                    <MessageBox username={idx.fromUser} message={idx.message} />
+      {threadObject.threads.map((thread)=>
+                        <div key={thread.threadID}>
+                            {thread.messages.map((message)=>
+                                <div key={message.messageID }>
+                                    <MessageBox username={message.userID} message={message.messageText} />
                                     <br/>
                                 </div>
                             )}  
