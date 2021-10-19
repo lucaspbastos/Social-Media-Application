@@ -14,16 +14,16 @@ function Admin() {
     e.preventDefault();
     if(usr!=='' && pass!==''){
       console.log(usr,pass)
-      /*fetch('/admin', {
-        method: 'POST',
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({usr,pass})
+        /*fetch('/admin', {
+          method: 'POST',
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), username: usr, password: pass})
 
-      }).then(res => {
-        return res.json();
-      }).then(function(data) {
-        console.log(data.login)
-    })*/
+        }).then(res => {
+          return res.json();
+        }).then(function(data) {
+          console.log("done")
+      })*/
     }
   }
 

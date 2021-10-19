@@ -6,30 +6,40 @@ function PostCards({ id, caption, imgUrl}) {
     const [comment,setComment]=useState('');
 
     
-    function handleBlock(ids){
+    function handleBlock(e, ids){
         //remove post from db
-        console.log("hello")
-        if(ids===2){
-            var element = document.getElementById(id);
-            element.parentNode.removeChild(element);
-            window.location.reload();
+        e.preventDefault();
+        /*fetch('/blockPost', {
+            method: 'POST',
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
 
-        }
-        else{
-            console.log("not 2")
-        }
-        //send post request
-        //set blockstatus to true, and id of post
-        //
+          }).then(res => {
+            return res.json();
+          }).then(function(data) {
+            console.log(data.blocked)
+            window.location.reload(true);
+
+        })*/
+        
     }
     function handleComment(e,pstid,cmnt){
         
         e.preventDefault();
         console.log("comment id "+pstid+" comment is "+cmnt)  
+        /*fetch('/createComment', {
+            method: 'POST',
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), text: cmnt, attachment: "", postID: pstid})
+
+          }).then(res => {
+            return res.json();
+          }).then(function(data) {
+            console.log(data.created)
+            window.location.reload(true);
+
+        })*/
         
-        //send data to the backend, with post id, comment,
-        //add comment to post by id
-        //window reload
     }
     return (
         <>
@@ -38,7 +48,7 @@ function PostCards({ id, caption, imgUrl}) {
             {imgUrl ==='' ? (<></>) : (<><br/><img src={imgUrl} style={{width:"100px", height: "100px"}}/></>) }
             <br/><br/>
         <div/>
-            <button className={styles.button} type="button" onClick={()=> handleBlock(id)}>{"Block Post"}</button>
+            <button className={styles.button} type="button" onClick={(e)=> handleBlock(e,id)}>{"Block Post"}</button>
             <span style={{display: "block", marginBottom: "10px"}}/>
             <form style={{textAlign: "center"}}>
             <label >

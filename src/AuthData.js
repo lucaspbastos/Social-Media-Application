@@ -24,6 +24,22 @@ var AuthData = (function() {
       sessionStorage.setItem("auth", auth);     
     };
 
+    var getLastThread = function() {
+      return sessionStorage.getItem("lastthread"); 
+    };
+  
+    var setLastThread = function(thread) {
+      sessionStorage.setItem("lastthread", thread);     
+    };
+
+    var getSessionString = function() {
+      return sessionStorage.getItem("sessionstring"); 
+    };
+  
+    var setSessionString = function(ssn) {
+      sessionStorage.setItem("sessionstring", ssn);     
+    };
+
   
     return {
       getName: getName,
@@ -32,8 +48,12 @@ var AuthData = (function() {
       setAdmin: setAdmin,
       getAuth: getAuth,
       setAuth: setAuth,
+      getLastThread: getLastThread,
+      setLastThread: setLastThread,
+      getSessionString: getSessionString,
+      setSessionString: setSessionString
     }
   
   })();
-  
-  export default AuthData;
+
+export default AuthData;

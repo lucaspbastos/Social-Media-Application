@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MessageBox from './MessageBox';
 import AuthData from '../AuthData';
 import { Redirect } from 'react-router';
@@ -6,59 +6,81 @@ import { Link } from 'react-router-dom';
 import styles from './MessageCard.module.scss'
 
 
-//call to get intial users,
-//after selection of user to send messages to get alrdy sent messages messages 
-  //send messages back in order
-  //[message 1, username, datetime], [message2,username,datetime]
-  //send in order
-  //on click send username, selected user and message to db
-  //get json back 
-  
-  //function userlist
-
 function Messages() {
   const [users,setUsers]=useState('');
   const [actualUser,setactualUser]=useState('');
   const[message,setMessage]=useState('')
   const[clicked,setClicked]=useState(false)
+  //const[messageObject,setmessageObject]=useState(false)
+
+    useEffect(()=>{
+      if(AuthData.getLastThread!==''){
+          console.log(AuthData.getLastThread())
+          /*fetch('/getThreads', {
+              method: 'POST',
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: AuthData.getLastThread()})
+
+            }).then(res => {
+              return res.json();
+            }).then(function(data){
+                setmessageObject(data)
+          })*/
+      }
+      else{
+        console.log("no thread chosen")
+      }
+    }, [])
 
     if(AuthData.getAuth()!=="true"){
       return <Redirect to="/"/>;
   }
 
-const messageObject= { 
-  threads: [
-   {id: 1, userIDs: ["1", "2", "3", "4"], name: "Cool kids chat", messages: [
-      {id: 1, fromUser: 1, message: "Yerrr", datetime: 1294131780237},
-      {id: 2, fromUser: 4, message: "Yo", datetime: 1294131780269}
-    ]}, {id: 2, userIDs: ["1", "2"], name: "Bob", messages: [
-      {id: 1, fromUser: 1, message:"Hi", datetime:1294131780237},
-      {id: 2, fromUser: 2, message:"Yo", datetime: 1294131780269},
-      {id: 3, fromUser: 1, message:"Bye", datetime: 1294131780532},
-    ]}
-  ]
-} 
-  function getMessages(){
-    console.log("getting messages")
-  }
+//get rid of placeholder values
+  const messageObject= { 
+    threads: [
+    {id: 1, userIDs: ["1", "2", "3", "4"], name: "Cool kids chat", messages: [
+        {id: 1, fromUser: 1, message: "Yerrr", datetime: 1294131780237},
+        {id: 2, fromUser: 4, message: "Yo", datetime: 1294131780269}
+      ]}, {id: 2, userIDs: ["1", "2"], name: "Bob", messages: [
+        {id: 1, fromUser: 1, message:"Hi", datetime:1294131780237},
+        {id: 2, fromUser: 2, message:"Yo", datetime: 1294131780269},
+        {id: 3, fromUser: 1, message:"Bye", datetime: 1294131780532},
+      ]}
+    ]
+  } 
 
+  //for setting thread
   function handleSubmit(event,usr){
     event.preventDefault();
     if(usr !==""){
       setactualUser(usr)
-      console.log("thread is "+usr)
+      AuthData.setLastThread(usr)
+      console.log("thread is "+AuthData.getLastThread())
       setClicked(true)
-      //make a request get list of messages with both users
 
     }
   }
-
+  
+  //for message posted by the user
+  //currusr is thread number
   function handleMessage(e,msg,currUsr){
     e.preventDefault();
     if(msg!==''){
       console.log("curre user "+currUsr+ " message is "+msg)
+        /*fetch('/createMessage', {
+          method: 'POST',
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: currUsr, text: msg, attachment: ""})
+
+        }).then(res => {
+          return res.json();
+        }).then(function(data) {
+          console.log(data.created)
+          window.location.reload(true);
+      })*/
     }
-    //make post request to update db
+      
   }
   return (
     <>
