@@ -64,13 +64,12 @@ function Messages() {
         fetch('http://localhost:3002/createMessage', {
           method: 'POST',
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: currUsr, messageText: msg, messageAttachments: ""})
+          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: 1, recipientUserIDs: currUsr, messageText: msg, messageAttachments: ""})
 
         }).then(res => {
           return res.json();
         }).then(function(data) {
-          console.log(data.created)
-          window.location.reload(true);
+          console.log(data)
       })
     }
       

@@ -27,14 +27,13 @@ function PostCards({ id, caption, imgUrl }) {
         
         e.preventDefault();
         console.log("comment id "+pstid+" comment is "+cmnt)  
-        fetch('/createComment', {
+        fetch('http://localhost:3002/createComment', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), commentText: cmnt, commentAttachments: "", postID: pstid})
-
-          }).then(res => {
+        }).then(res => {
             return res.json();
-          }).then(function(data) {
+        }).then(function(data) {
             console.log(data.created)
             window.location.reload(true);
 

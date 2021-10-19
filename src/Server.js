@@ -179,6 +179,46 @@ app.post('/createPost', async (req, res) => {
     }
 });
 
+app.post('/createComment', async (req, res) => { 
+    //TODO: fill in new thread creation
+    let username = req.body.username;
+    let role = req.body.role;
+    let sessionString = req.body.sessionString;
+    let postID = req.body.postID;
+
+    let commentText = req.body.commentText;
+    let commentAttachments = req.body.commentAttachments;
+    //TODO: check session
+
+    let conn;
+    let error = null;
+    let createResult = false;
+
+    try {
+        conn = await fetchConn();
+        // Use Connection
+        try {
+            const userID = await getUserID(conn, username);
+            createResult = await createCommentFromUserID(conn, userID, postID, commentText, commentAttachments);
+        } catch(e) {
+            error = e;
+        }
+        let response = {
+            'created': createResult,
+            'error': error
+        }
+        res.send(JSON.stringify(response));
+        
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
+});
+
 app.post('/search', async (req, res) => {
     let searchQuery = req.body.search;
     let conn;
@@ -302,8 +342,8 @@ app.post('/createMessage', async (req, res) => {
     let sessionString = req.body.sessionString;
     let threadID = req.body.threadID;
     let recipientUserIDs = req.body.recipientUserIDs;
-    let messageText = req.body.text;
-    let messageAttachments = req.body.imgUrl;
+    let messageText = req.body.messageText;
+    let messageAttachments = req.body.messageAttachments;
     //TODO: check session
 
     let conn;
@@ -315,6 +355,7 @@ app.post('/createMessage', async (req, res) => {
         // Use Connection
         try {
             const userID = await getUserID(conn, username);
+            console.log(userID);
             createResult = await createMessageFromUserID(conn, threadID, userID, recipientUserIDs, messageText, messageAttachments);
         } catch(e) {
             error = e;
