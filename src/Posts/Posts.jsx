@@ -17,7 +17,8 @@ function Posts() {
     const [img,setImg]=useState('');
     let [newpost, setnewPost]=useState(false);
     const [dataObject, setdataObject]=useState({
-        posts: [{}],
+        posts: [{comments: [{}]
+        }],
         user: {}
     });
 
@@ -127,7 +128,12 @@ function Posts() {
                     {dataObject.posts.map((post)=>
                         <div key={post.id}>
                             <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames}/>
-                            
+                            {post.comments.map((comment) => 
+                                <div key={comment.commentID }>
+                                    <Comment id={comment.commentID} comment={comment.commentText} />
+                                    <br/>
+                                </div>
+                            )}  
                             <br/>
                         </div>
                     )}               

@@ -7,24 +7,24 @@ import Comment from "./Posts/Comment";
 
 function Search() {
   const [searchVal, setsearchVal]=useState('');
-  //const[searchObject,setsearchObject]=useState('');
+  const[searchObject,setsearchObject]=useState({
+    results: {
+      posts: [{
+        comments: [{}]
+      }],
+      user: {}
+    }
+  });
 
   if(AuthData.getAuth()!=="true" ){
     return <Redirect to="/"/>;
   }
   
-  const searchObject = { 
-    results: {
-      posts: [{ id: 1, imgUrl: "", text : "<i><strong>somedata</strong></i>", user: "bob", comments: [{id: 1, imgUrl: "", text: "comment1", user: "blah"}, { id: 2, text: "comment2", user: "blah"}]}, { id: 2, text : "blah blah blah", user: "bob", comments: [{id: 1, text: "comment1", user: "blah"}, { id: 2, text: "comment3", user: "comment4"}]}],
-      user: {userID: 1, username: "bob"}
-    }
-  } 
-  
   function handleClick(event,val){
     event.preventDefault();
     if(val!==''){
         console.log(val)
-        /*fetch('/search', {
+        fetch('http://localhost:3002/search', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({search: val})
@@ -34,7 +34,7 @@ function Search() {
           }).then(function(data) {
             console.log(data)
             setsearchObject(data)
-        })*/
+        })
     }
   }
   return (
@@ -59,12 +59,12 @@ function Search() {
         {(Object.keys(searchObject.results.posts).length === 0) ? (<>{console.log("no posts")}</>) :
             (
             <div>
-              {searchObject.results.posts.map((index)=>
-                            <div key={index.id}>
-                                <PostCards id={index.id} caption={index.text} imgUrl={index.imgUrl}/>
-                                {index.comments.map((idx)=>
-                                    <div key={idx.id }>
-                                        <Comment id={index.id} comment={idx.text} />
+              {searchObject.results.posts.map((post)=>
+                            <div key={post.postID}>
+                                <PostCards id={post.postID} caption={post.postText} imgUrl={post.postAttachments}/>
+                                {post.comments.map((comment)=>
+                                    <div key={comment.commentID }>
+                                        <Comment id={comment.commentID} comment={comment.commentText} />
                                     </div>
                                 )}
                                 <br/>
