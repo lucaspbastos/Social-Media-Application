@@ -95,9 +95,10 @@ app.post('/getPosts', async (req, res) => {
         conn = await fetchConn();
         // Use Connection
         try {
-            let postQuery = await getPosts(conn);
-            for (post in postQuery) {
-                let commentsArray = await getCommentsFromPostID(conn, post.postID);
+            let posts = await getPosts(conn);
+            for (const post of posts) {
+                const postID = post.postID;
+                const commentsArray = await getCommentsFromPostID(conn, postID);
                 post["comments"] = commentsArray;
                 postsArray.push(post);
             }
@@ -121,8 +122,40 @@ app.post('/getPosts', async (req, res) => {
 });
 
 app.post('/createPost', async (req, res) => { 
-    //TODO: fill in message feed
-    // grab thread list involving user with messages within
+    let username = req.body.username;
+    let role = req.body.role;
+    let sessionString = req.body.sessionString;
+    let postText = req.body.text;
+    let postAttachments = req.body.imgUrl;
+    //TODO: check session
+
+    let conn;
+    let error = null;
+    let createResult = false;
+
+    try {
+        conn = await fetchConn();
+        // Use Connection
+        try {
+            const userID = await getUserID(conn, username);
+            createResult = await createPostFromUserID(conn, userID, postAttachments, postText);
+        } catch(e) {
+            error = e;
+        }
+        let response = {
+            'created': createResult,
+            'error': error
+        }
+        res.send(JSON.stringify(response));
+        
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
 });
 
 app.post('/search', async (req, res) => { 
@@ -137,17 +170,20 @@ app.post('/search', async (req, res) => {
         // Use Connection
         try {
             // find users
-            let user = getID(searchQuery);
+            const user = await getUserID(conn, searchQuery);
             if (Boolean(user)) {
                 userObject["userID"] = user;
                 userObject["username"] = searchQuery;
             }
 
             //find posts
-            let postQuery = await getPosts(conn);
-            for (post in postQuery) {
-                if (post.postText.split().includes(searchQuery)) {
-                    let commentsArray = await getCommentsFromPostID(conn, post.postID);
+            let posts = await getPosts(conn);
+            for (const post of posts) {
+                const text = post.postText;
+                const textSplit = text.split(" ");
+                if (textSplit.includes(searchQuery)) {
+                    const postID = post.postID;
+                    const commentsArray = await getCommentsFromPostID(conn, postID);
                     post["comments"] = commentsArray;
                     postsArray.push(post);
                 }
@@ -157,7 +193,7 @@ app.post('/search', async (req, res) => {
         } catch(e) {
             error = e;
         }
-        let response = {
+        const response = {
             'results': resultsObject,
             'error': error
         }
@@ -171,10 +207,10 @@ app.post('/search', async (req, res) => {
         // Close Connection
         if (conn) conn.end();
     }
-
 });
 
 app.post('/getThreads', async (req, res) => { 
+    const userID = Number(req.body.userID);
     let conn;
     let error = null;
     let threadsArray = [];
@@ -182,16 +218,17 @@ app.post('/getThreads', async (req, res) => {
         conn = await fetchConn();
         // Use Connection
         try {
-            let threadQuery = await getThreads(conn);
-            for (thread in threadQuery) {
-                let messagesArray = await getMessagesFromThreadID(conn, thread.threadID);
+            let threads = await getThreadsWithUserID(conn, userID);
+            for (let thread of threads) {
+                const threadID = thread.threadID;
+                const messagesArray = await getMessagesFromThreadID(conn, threadID);
                 thread["messages"] = messagesArray;
                 threadsArray.push(thread);
             }
         } catch(e) {
             error = e;
         }
-        let response = {
+        const response = {
             'threads': threadsArray,
             'error': error
         }
@@ -207,6 +244,57 @@ app.post('/getThreads', async (req, res) => {
     }
 });
 
+app.post('/createThread', async (req, res) => { 
+    //TODO: fill in new thread creation
+});
+
+app.post('/createMessage', async (req, res) => { 
+    //TODO: fill in new thread creation
+    let username = req.body.username;
+    let role = req.body.role;
+    let sessionString = req.body.sessionString;
+    let threadID = req.body.threadID;
+    let recipientUserIDs = req.body.recipientUserIDs;
+    let messageText = req.body.text;
+    let messageAttachments = req.body.imgUrl;
+    //TODO: check session
+
+    let conn;
+    let error = null;
+    let createResult = false;
+
+    try {
+        conn = await fetchConn();
+        // Use Connection
+        try {
+            const userID = await getUserID(conn, username);
+            createResult = await createMessageFromUserID(conn, threadID, userID, recipientUserIDs, messageText, messageAttachments);
+        } catch(e) {
+            error = e;
+        }
+        let response = {
+            'created': createResult,
+            'error': error
+        }
+        res.send(JSON.stringify(response));
+        
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
+});
+
+app.post('/blockPost', async (req, res) => { 
+    //TODO: fill in post blocking, check auth
+});
+
+app.post('/unblockPost', async (req, res) => { 
+    //TODO: fill in post blocking, check auth
+});
 
 // misc functions
 async function fetchConn() {
@@ -399,23 +487,12 @@ async function getPostsFromUserID(conn, userID) {
  * Gets all threads from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {Number} userID - Match userID.
  **/
- async function getThreadsWithUserID(conn, userID) {
+ async function getThreads(conn) {
     let sqlQuery = "SELECT * from Threads LIMIT 100";
     let ret = await conn.query(sqlQuery);
-    let threadArray = ret.slice(0);
-    let res = [];
-    threadArray.forEach((thread) => {
-        let parsedUserIDs = JSON.parse(thread.userIDs);
-        if (parsedUserIDs.includes(userID)) {
-            res.push(thread)
-        }
-    });
-    
-    return res;
+    return ret.slice(0);
 }
-
 
 /**
  * Gets post from a postID from database.
@@ -447,13 +524,22 @@ async function getCommentsFromPostID(conn, postID) {
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} userID - Desired userID.
  **/
-async function getThreadsFromUserID(conn, userID) {
-    let sqlQuery = "SELECT * from Threads where userID=?"
-    return await conn.query(sqlQuery, [userID])
+async function getThreadsWithUserID(conn, userID) {
+    let sqlQuery = "SELECT * from Threads LIMIT 100";
+    const ret = await conn.query(sqlQuery);
+    const threads = ret.slice(0);
+    let res = [];
+    for (const thread of threads) {
+        const userIDs = thread.userIDs;
+        const parsedUserIDs = JSON.parse(userIDs)
+        if (parsedUserIDs.includes(userID)) {
+            res.push(thread)
+        }
+    }
+    return res;
 }
 
-async function getMessagesFromThreadID(threadID) {
-    let conn = await fetchConn();
+async function getMessagesFromThreadID(conn, threadID) {
     let sqlQuery = "SELECT * from Messages where threadID=?";
     let ret = await conn.query(sqlQuery, [threadID]);
     return ret.slice(0);
@@ -486,9 +572,15 @@ async function getMessagesFromThreadID(threadID) {
  * @param {String} postText - Desired post text.
  * @param {String} postAttachments - Desired post attachments.
  **/
-async function createPostFromUserID(conn, userID, postText, postAttachments) {
-    let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?)"
-    return await conn.query(sqlQuery, [userID, postText, postAttachments, Date.now()])
+async function createPostFromUserID(conn, userID, postAttachments, postText) {
+    let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?, ?, ?)"
+    const epochTime = new Date().getTime()/1000;
+    const blockStatus = 0;
+    const row = await conn.query(sqlQuery, [0, userID, postText, postAttachments, epochTime, blockStatus]);
+    if (row.constructor.name == "OkPacket") {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -500,9 +592,15 @@ async function createPostFromUserID(conn, userID, postText, postAttachments) {
  * @param {String} commentText - Desired comment text.
  * @param {String} commentAttachments - Desired comment attachments.
  **/
-async function createCommentFromUserIDForPostID(conn, userID, postID, commentText, commentAttachments) {
-    let sqlQuery = "INSERT INTO Comments WHERE VALUES (?, ?, ?, ?, ?)"
-    return await conn.query(sqlQuery, [userID, postID, commentText, commentAttachments, Date.now()])
+async function createCommentFromUserID(conn, userID, postID, commentText, commentAttachments) {
+    let sqlQuery = "INSERT INTO Comments VALUES (?, ?, ?, ?, ?, ?, ?)"
+    const epochTime = new Date().getTime()/1000;
+    const blockStatus = 0;
+    const row = await conn.query(sqlQuery, [0, userID, postID, commentText,commentAttachments, epochTime, blockStatus]);
+    if (row.constructor.name == "OkPacket") {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -514,9 +612,14 @@ async function createCommentFromUserIDForPostID(conn, userID, postID, commentTex
  * @param {String} messageText - Desired message text.
  * @param {String} messageAttachments - Desired message attachments.
  **/
-async function createMessageFromUserIDToUserID(conn, senderUserID, recipientUserIDs, messageText, messageAttachments) {
-    let sqlQuery = "INSERT INTO Messages VALUES (?, ?, ?, ?, ?)"
-    return await conn.query(sqlQuery, [senderUserID, recipientUserID, messageText, messageAttachments, Date.now()])
+async function createMessageFromUserID(conn, threadID, senderUserID, recipientUserIDs, messageText, messageAttachments) {
+    let sqlQuery = "INSERT INTO Messages VALUES (?, ?, ?, ?, ?, ?, ?)"
+    const epochTime = new Date().getTime()/1000;
+    const row = await conn.query(sqlQuery, [0, threadID, senderUserID, recipientUserIDs, messageText, messageAttachments, epochTime]);
+    if (row.constructor.name == "OkPacket") {
+        return true;
+    }
+    return false;
 }
 
 // admin functions
