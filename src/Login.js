@@ -22,15 +22,11 @@ function Login() {
             //keep this
             AuthData.setName(user);
             
-            //remove, rest done in fetch
-            console.log(AuthData.getName())
-            AuthData.setAdmin(1)
-            AuthData.setAuth(true)            
           
-              /*fetch('/login', {
+              fetch('http://localhost:3002/login', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({user,pass})
+                body: JSON.stringify({username: user, password: pass})
 
               }).then(res => {
                 return res.json();
@@ -40,7 +36,7 @@ function Login() {
                 console.log(data.role)
                 if (data.login) {
                   AuthData.setAuth(true)
-                  AuthData.setSessionString(data.sessionString)
+                  AuthData.setSessionString(data.login)
                   if (data.role === 1) {
                     AuthData.setAdmin(1)
                     history.push("/posts")
@@ -52,7 +48,7 @@ function Login() {
                   history.push("/invalid")
                 }
                 console.log(data.error)
-            })*/
+              })
             history.push("/Posts")
 
           }

@@ -11,61 +11,81 @@ import { Fade } from 'react-bootstrap';
 import { conditionalExpression } from '@babel/types';
 
 function Posts() {
-    
+    let run = 0;
 
     const [msg,setMsg]=useState('');
     const [img,setImg]=useState('');
-    const [newpost,setnewPost]=useState(false);
-    //const [dataObject,setdataObject]=useState('');
+    let [newpost, setnewPost]=useState(false);
+    const [dataObject, setdataObject]=useState({
+        posts: [{}],
+        user: {}
+    });
+
+    //initial load
+    // if (run == 0) {
+    //     console.log(run)
+    //     fetch('http://localhost:3002/getPosts', {
+    //         method: 'POST',
+    //         headers: {"Content-Type": "application/json"},
+    //         body: JSON.stringify({})
+
+    //     }).then(res => {
+    //         return res.json();
+    //     }).then(function(data){
+    //         console.log("data", data)
+    //         setdataObject(data)
+    //         console.log(dataObject)
+    //     })
+    // }
+    
 
     
     useEffect(()=>{
         if(newpost===true){
             console.log("new post was made")
             newpost=false
-            /*fetch('/getPosts', {
-              method: 'POST',
-              headers: {"Content-Type": "application/json"},
-              body: JSON.stringify({ username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
+            fetch('http://localhost:3002/getPosts', {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
 
             }).then(res => {
-              return res.json();
+                return res.json();
             }).then(function(data){
                 setdataObject(data)
-          })*/
+            })
         }
     }, [newpost])
     if(AuthData.getAuth()!=="true"){
         return <Redirect to="/"/>;
     }
+
     function handleClick(event,msgs,imgs){
         event.preventDefault();
         if(msgs!=='' || imgs!==''){
             console.log(msgs)
             console.log(imgs)
-            /*fetch('/createPost', {
+            fetch('http://localhost:3002/createPost', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), text: msgs, attachment: imgs})
-  
-              }).then(res => {
+            }).then(res => {
                 return res.json();
-              }).then(function(data) {
-                console.log(data.login)
+            }).then(function(data) {
                 setnewPost(true)
-            })*/
+            })
 
         }
         else{
             console.log("nothing entered")
         }
     }
-    //remove this placeholder
-    const dataObject = {
-        posts: [
-            { id: 1, imgUrl: "https://secure.img1-fg.wfcdn.com/im/98270403/resize-h800-w800%5Ecompr-r85/8470/84707680/Pokemon+Pikachu+Wall+Decal.jpg", text : "<i><strong>somedata</strong></i>", user: "bob", comments: [{id: 1, imgUrl: "", text: "comment1", user: "blah"}, { id: 2, text: "comment2", user: "blah"}]}, { id: 2, text : "blah blah blah", user: "bob", comments: [{id: 1, text: "comment1", user: "blah"}, { id: 2, text: "comment3", user: "comment4"}]}
-        ]
-    };
+    // //remove this placeholder
+    // const dataObject = {
+    //     posts: [
+    //         { id: 1, imgUrl: "https://secure.img1-fg.wfcdn.com/im/98270403/resize-h800-w800%5Ecompr-r85/8470/84707680/Pokemon+Pikachu+Wall+Decal.jpg", text : "<i><strong>somedata</strong></i>", user: "bob", comments: [{id: 1, imgUrl: "", text: "comment1", user: "blah"}, { id: 2, text: "comment2", user: "blah"}]}, { id: 2, text : "blah blah blah", user: "bob", comments: [{id: 1, text: "comment1", user: "blah"}, { id: 2, text: "comment3", user: "comment4"}]}
+    //     ]
+    // };
     
     return (
         <div style={{textAlign: "center"}}>
@@ -103,14 +123,10 @@ function Posts() {
                 </form> 
 
                 <div>
-                    {dataObject.posts.map((index)=>
-                        <div key={index.id}>
-                            <PostCards id={index.id} caption={index.text} imgUrl={index.imgUrl}/>
-                            {index.comments.map((idx)=>
-                                <div key={idx.id }>
-                                    <Comment id={index.id} comment={idx.text} />
-                                </div>
-                            )}
+                    {dataObject.posts.map((post)=>
+                        <div key={post.id}>
+                            <PostCards id={post.id} caption={post.text} imgUrl={post.imgUrl}/>
+                            
                             <br/>
                         </div>
                     )}               

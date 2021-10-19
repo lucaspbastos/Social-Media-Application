@@ -529,21 +529,21 @@ async function generateSession(conn, userID) {
     return null;
 }
 
-async function getFeedForUserID(conn, userID) {
-    // Get following list
-    const following = getFollowingListForUserID(conn, userID);
-    let returnFeed = [];
+// async function getFeedForUserID(conn, userID) {
+//     // Get following list
+//     const following = getFollowingListForUserID(conn, userID);
+//     let returnFeed = [];
 
-    for (followingUserID in following) {
-        const posts = getPostsFromUserID(conn, followingUserID);
-        for (postID in posts) {
-            const comments = getCommentsFromPostID(conn, postID);
-        }
-        // TODO: Fix
-        returnFeed.push({posts, comments});
-    }
-    return returnFeed;
-}
+//     for (followingUserID in following) {
+//         const posts = getPostsFromUserID(conn, followingUserID);
+//         for (postID in posts) {
+//             const comments = getCommentsFromPostID(conn, postID);
+//         }
+//         // TODO: Fix
+//         returnFeed.push({posts, comments});
+//     }
+//     return returnFeed;
+// }
 
 // get functions
 

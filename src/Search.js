@@ -17,7 +17,7 @@ function Search() {
     results: {
       posts: [{ id: 1, imgUrl: "", text : "<i><strong>somedata</strong></i>", user: "bob", comments: [{id: 1, imgUrl: "", text: "comment1", user: "blah"}, { id: 2, text: "comment2", user: "blah"}]}, { id: 2, text : "blah blah blah", user: "bob", comments: [{id: 1, text: "comment1", user: "blah"}, { id: 2, text: "comment3", user: "comment4"}]}],
       user: {userID: 1, username: "bob"}
-     }
+    }
   } 
   
   function handleClick(event,val){

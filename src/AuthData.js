@@ -33,11 +33,11 @@ var AuthData = (function() {
     };
 
     var getSessionString = function() {
-      return sessionStorage.getItem("sessionstring"); 
+      return sessionStorage.getItem("sessionString"); 
     };
   
     var setSessionString = function(ssn) {
-      sessionStorage.setItem("sessionstring", ssn);     
+      sessionStorage.setItem("sessionString", ssn);     
     };
 
   
