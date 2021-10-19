@@ -2,6 +2,7 @@ import './App.css';
 import {useState } from 'react';
 import { useHistory } from "react-router-dom";
 
+import AuthData from './AuthData';
 
 function Login() {
     const [user,setUser]=useState('');
@@ -18,31 +19,41 @@ function Login() {
       function handleClick(event,user,pass){
           if(user!=='' && pass!==''){
             event.preventDefault();
-            console.log(user,pass)
+            //keep this
+            AuthData.setName(user);
+            
+            //remove, rest done in fetch
+            console.log(AuthData.getName())
+            AuthData.setAdmin(1)
+            AuthData.setAuth(true)            
+          
+              /*fetch('/login', {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({user,pass})
 
-            fetch('/login', {
-              method: 'POST',
-              headers: {"Content-Type": "application/json"},
-              body: JSON.stringify({user,pass})
-
-            }).then(res => {
-              return res.json();
-            }).then(function(data) {
-              console.log(data.login)
-              // Handle no user
-              console.log(data.role)
-              if (data.login) {
-                if (data.role === 1) {
-                  history.push("/admin")
+              }).then(res => {
+                return res.json();
+              }).then(function(data) {
+                console.log(data.login)
+                // Handle no user
+                console.log(data.role)
+                if (data.login) {
+                  AuthData.setAuth(true)
+                  AuthData.setSessionString(data.sessionString)
+                  if (data.role === 1) {
+                    AuthData.setAdmin(1)
+                    history.push("/posts")
+                  } else {
+                    AuthData.setAdmin(0)
+                    history.push("/posts")
+                  }
                 } else {
-                  history.push("/user")
+                  history.push("/invalid")
                 }
-              } else {
-                history.push("/invalid")
-              }
-              console.log(data.error)
-          })
-            //history.push("/admin")
+                console.log(data.error)
+            })*/
+            history.push("/Posts")
 
           }
           else{
