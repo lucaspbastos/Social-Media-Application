@@ -8,16 +8,20 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-//app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-/*app.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true }
-}));*/
+// app.use(session({
+//     secret: process.env.SESSION_SECRET,
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: { secure: false }
+// }));
+
+// if (process.env.DEPLOYMENT === 'prod') {
+//     app.set('trust proxy', 1) // trust first proxy
+//     sess.cookie.secure = true // serve secure cookies
+// }
 
 /**
  * Contains options and parameters for hashing functions.
@@ -31,40 +35,36 @@ const hashConfig = {
 }
 
 app.post('/login', async (req, res) => {
-    let username = req.body.user;
-    let password = req.body.pass;
-    
+    let username = req.body.username;
+    let password = req.body.password;
     let conn;
-    let isUser;
-    let role;
-    let error;
+    let isUser = false;
+    let role = 0;
+    let error= null;
+    let authString = null;
+
     try {
         conn = await fetchConn();
         // Use Connection
         try {
-            let userID = await getUserID(conn, username);
-            let salt = await getSalt(conn, userID);
+            const userID = await getUserID(conn, username);
+            const salt = await getSalt(conn, userID);
             if (salt) {
                 isUser = await verifyCredentials(conn, userID, salt, password);
                 //TODO: generate session
                 if (isUser) {
                     role = await getRole(conn, userID);
+                    authString = await generateSession(conn, userID);
+                    //TODO: use express-session for session storing
                 } else {
-                    role = 0;
+                    error = 'bad creds';
                 }
-            } else {
-                // no Salt -> user exists
-                isUser = false;
-                role = 0;
             }
-            error = null;
         } catch(e) {
-            isUser = false;
-            role = 0;
             error = e;
         }
         let response = {
-            'login': isUser,
+            'login': authString,
             'role': role,
             'error': error
         }
@@ -125,29 +125,25 @@ app.post('/createPost', async (req, res) => {
     let username = req.body.username;
     let role = req.body.role;
     let sessionString = req.body.sessionString;
+    console.log(sessionString);
     let postText = req.body.text;
     let postAttachments = req.body.imgUrl;
-    //TODO: check session
-
     let conn;
+    let passAuth = false;
     let error = null;
     let createResult = false;
 
     try {
         conn = await fetchConn();
-        // Use Connection
-        try {
-            const userID = await getUserID(conn, username);
-            createResult = await createPostFromUserID(conn, userID, postAttachments, postText);
-        } catch(e) {
-            error = e;
+        const userID = await getUserID(conn, username);
+        if (await verifyAuthSession(conn, userID, sessionString)) {
+            passAuth = true;
+        } else {
+            res.send({
+                'created': false,
+                'error': 'bad auth'
+            });
         }
-        let response = {
-            'created': createResult,
-            'error': error
-        }
-        res.send(JSON.stringify(response));
-        
     } catch (err) {
         // Manage Errors
         console.log(err)
@@ -155,6 +151,32 @@ app.post('/createPost', async (req, res) => {
     } finally {
         // Close Connection
         if (conn) conn.end();
+    }
+
+    if (passAuth) {
+        try {
+            conn = await fetchConn();
+            // Use Connection
+            try {
+                const userID = await getUserID(conn, username);
+                createResult = await createPostFromUserID(conn, userID, postAttachments, postText);
+            } catch(e) {
+                error = e;
+            }
+            let response = {
+                'created': createResult,
+                'error': error
+            }
+            res.send(JSON.stringify(response));
+            
+        } catch (err) {
+            // Manage Errors
+            console.log(err)
+            res.send({error: err});
+        } finally {
+            // Close Connection
+            if (conn) conn.end();
+        }
     }
 });
 
@@ -165,6 +187,7 @@ app.post('/search', async (req, res) => {
     let resultsObject = {};
     let userObject = {};
     let postsArray = [];
+
     try {
         conn = await fetchConn();
         // Use Connection
@@ -211,9 +234,32 @@ app.post('/search', async (req, res) => {
 
 app.post('/getThreads', async (req, res) => { 
     const userID = Number(req.body.userID);
+    let role = req.body.role;
+    let sessionString = req.body.sessionString;
+    let postText = req.body.text;
+    let postAttachments = req.body.imgUrl;
     let conn;
+
+    try {
+        conn = await fetchConn();
+        const authCheck = await verifyAuthSession(conn, userID, sessionString);
+        if (!authCheck) {
+            res.end({'error': 'bad session'});
+        }
+        return;
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
+    
+
     let error = null;
     let threadsArray = [];
+
     try {
         conn = await fetchConn();
         // Use Connection
@@ -290,6 +336,14 @@ app.post('/createMessage', async (req, res) => {
 
 app.post('/blockPost', async (req, res) => { 
     //TODO: fill in post blocking, check auth
+    let username = req.body.username;
+    let role = req.body.role;
+    let sessionString = req.body.sessionString;
+    let postID = req.body.postID;
+
+    //check session
+
+
 });
 
 app.post('/unblockPost', async (req, res) => { 
@@ -323,9 +377,7 @@ function hashSaltPepperPassword(password, salt) {
 async function verifyCredentials(conn, userID, salt, attemptedPassword) {
     // Generate attemptedHashedSaltedPepperedPassword from attemptedPassword, leave as Buffer type
     const attemptedHashedSaltedPepperedPassword = hashSaltPepperPassword(attemptedPassword, salt);
-    let rows = await getHashedSaltPepperPassword(conn, userID);
-    let usersHash = rows[0].HashedSaltPepperPassword;
-
+    let usersHash = await getHashedSaltPepperPassword(conn, userID);
     return crypto.timingSafeEqual(attemptedHashedSaltedPepperedPassword, Buffer.from(usersHash, 'base64'));
 }
 
@@ -357,7 +409,18 @@ function generateSalt(length) {
     return crypto.randomBytes(length/2);
 }
 
-function getFeedForUserID(conn, userID) {
+async function generateSession(conn, userID) {
+    const sessionString = crypto.randomBytes(64).toString('base64');
+    let sqlQuery = "INSERT INTO SessionsTable VALUES (?, ?, ?)"
+    const epochTime = new Date().getTime()/1000;
+    const row = await conn.query(sqlQuery, [userID, sessionString, epochTime]);
+    if (row.constructor.name == "OkPacket") {
+        return sessionString;
+    }
+    return null;
+}
+
+async function getFeedForUserID(conn, userID) {
     // Get following list
     const following = getFollowingListForUserID(conn, userID);
     let returnFeed = [];
@@ -384,7 +447,7 @@ function getFeedForUserID(conn, userID) {
 async function getSalt(conn, userID) {
     let sqlQuery = "SELECT salt from Users where userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
-    return ret[0];
+    return ret[0]['salt'];
 }
 
 /**
@@ -397,6 +460,7 @@ async function getRole(conn, userID) {
     let sqlQuery = "SELECT adminRole from Users where userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
     let res;
+    console.log(res)
     try {
         res = ret.slice(0)[0].adminRole; //returns as object within array along with meta, remove meta
     } catch(e) {
@@ -448,7 +512,7 @@ async function getUsername(conn, userID) {
  * @param {String} userID - Desired userID.
  **/
 async function getHashedSaltPepperPassword(conn, userID) {
-    let sqlQuery = "SELECT HashedSaltPepperPassword from Userss where userID=?";
+    let sqlQuery = "SELECT HashedSaltPepperPassword from Users where userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
     let res;
     try {
