@@ -335,15 +335,62 @@ app.post('/createMessage', async (req, res) => {
 });
 
 app.post('/blockPost', async (req, res) => { 
-    //TODO: fill in post blocking, check auth
     let username = req.body.username;
     let role = req.body.role;
     let sessionString = req.body.sessionString;
     let postID = req.body.postID;
+    let blocked;
+    let passAuth = false;
+    let error = null;
 
     //check session
+    try {
+        conn = await fetchConn();
+        const userID = await getUserID(conn, username);
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            passAuth = true;
+        } else {
+            res.send({
+                'blocked': false,
+                'error': 'bad auth'
+            });
+        }
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
 
-
+    if (passAuth) {
+        try {
+            conn = await fetchConn();
+            // Use Connection
+            try {
+                if (role == 1) {
+                    blocked = await blockPost(conn, postID);
+                }
+            } catch(e) {
+                error = e;
+            }
+            let response = {
+                'blocked': blocked,
+                'error': error
+            }
+            res.send(JSON.stringify(response));
+            
+        } catch (err) {
+            // Manage Errors
+            console.log(err)
+            res.send({error: err});
+        } finally {
+            // Close Connection
+            if (conn) conn.end();
+        }
+    }
 });
 
 app.post('/unblockPost', async (req, res) => { 
@@ -695,9 +742,12 @@ async function createMessageFromUserID(conn, threadID, senderUserID, recipientUs
  * @param {String} postID - Desired postID to block.
  **/
 async function blockPost(conn, postID) {
-    //TODO: check admin role
     let sqlQuery = "UPDATE Posts SET blockStatus=? WHERE postID=?"
-    return await conn.query(sqlQuery, [1, postID])
+    let row = await conn.query(sqlQuery, [1, postID]);
+    if (row.constructor.name == "OkPacket") {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -707,9 +757,12 @@ async function blockPost(conn, postID) {
  * @param {String} postID - Desired postID to unblock.
  **/
 async function unblockPost(conn, postID) {
-    //TODO: check admin role
-    let sqlQuery = "UPDATE Posts SET blockStatus=? WHERE postID=?"
-    return await conn.query(sqlQuery, [0, postID])
+    let sqlQuery = "UPDATE Posts SET blockStatus=? WHERE postID=?";
+    let row = await conn.query(sqlQuery, [0, postID]);
+    if (row.constructor.name == "OkPacket") {
+        return true;
+    }
+    return false;
 }
 
 /**
