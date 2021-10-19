@@ -16,7 +16,7 @@ function Search() {
         fetch('/search', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({search: val})
+            body: JSON.stringify({search: val}) /*edited by Mike -- using key value pair to mirror the way the data is being retrieved on back end for search*/
           }).then(res => {
             return res.json();
           }).then(function(data) {
