@@ -14,6 +14,16 @@ function Search() {
     event.preventDefault();
     if(val!==''){
         console.log(val)
+        /*fetch('/search', {
+            method: 'POST',
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({val})
+
+          }).then(res => {
+            return res.json();
+          }).then(function(data) {
+            console.log(data.login)
+        })*/
     }
   }
   return (
