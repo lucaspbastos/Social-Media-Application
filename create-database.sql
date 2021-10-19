@@ -3,31 +3,31 @@ use CS490;
 
 CREATE TABLE Users (
     userID int AUTO_INCREMENT UNIQUE NOT NULL,
-    UserName varchar(1000) UNIQUE NOT NULL,
-    HashedSaltPepperPassword varchar(1000) NOT NULL,
-    Salt varchar(1000) NOT NULL,
-    AdminRole int NOT NULL,
+    username varchar(1000) UNIQUE NOT NULL,
+    hashedSaltPepperPassword varchar(1000) NOT NULL,
+    salt varchar(1000) NOT NULL,
+    adminRole int NOT NULL,
     PRIMARY KEY(userID)
 );
 
 CREATE TABLE SessionsTable (
     userID int NOT NULL,
     sessionString varchar(255),
-    sessionDatetime datetime,
+    sessionDatetime int,
     PRIMARY KEY(userID),
-    FOREIGN KEY(userID) REFERENCES User(userID)
+    FOREIGN KEY(userID) REFERENCES Users(userID)
 );
 
 
 CREATE TABLE Posts (
     postID int AUTO_INCREMENT UNIQUE NOT NULL,
     userID int not NULL,
+    varchar(1000),
     fileNames varchar(1000),
-    postText varchar(1000),
-    postDate datetime NOT NULL,
+    postDatetime int NOT NULL,
     blockStatus int NOT NULL,
     PRIMARY KEY(postID),
-    FOREIGN KEY(userID) REFERENCES User(userID)
+    FOREIGN KEY(userID) REFERENCES Users(userID)
 );
 
 CREATE TABLE Comments (
@@ -36,7 +36,7 @@ CREATE TABLE Comments (
     postID int not NULL,
     commentText varchar(1000),
     fileNames varchar(1000),
-    commentDate datetime NOT NULL,
+    commentDatetime int NOT NULL,
     blockStatus int NOT NULL,
     PRIMARY KEY(commentID),
     FOREIGN KEY(userID) REFERENCES Users(userID),
@@ -57,7 +57,8 @@ CREATE TABLE Messages (
     userID int NOT NULL,
     recipientUserIDs varchar(1000) NOT NULL,
     messageText varchar(1000),
-    messageDate datetime NOT NULL,
+    fileNames varchar(1000),
+    messageDatetime int NOT NULL,
     PRIMARY KEY(messageID),
     FOREIGN KEY(userID) REFERENCES Users(userID),
     FOREIGN KEY(threadID) REFERENCES Threads(threadID)
