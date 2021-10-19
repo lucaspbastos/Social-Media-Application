@@ -180,8 +180,8 @@ app.post('/createPost', async (req, res) => {
     }
 });
 
-app.post('/search', async (req, res) => { 
-    let searchQuery = req.body.query;
+app.post('/search', async (req, res) => {
+    let searchQuery = req.body.search;
     let conn;
     let error = null;
     let resultsObject = {};
@@ -194,6 +194,7 @@ app.post('/search', async (req, res) => {
         try {
             // find users
             const user = await getUserID(conn, searchQuery);
+
             if (Boolean(user)) {
                 userObject["userID"] = user;
                 userObject["username"] = searchQuery;
