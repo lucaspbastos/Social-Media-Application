@@ -9,19 +9,20 @@ function Search() {
     return <Redirect to="/"/>;
   }
   
+  
   function handleClick(event,val){
     event.preventDefault();
     if(val!==''){
         console.log(val)
-        fetch('/search', {
+        /*fetch('/search', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({search: val}) /*edited by Mike -- using key value pair to mirror the way the data is being retrieved on back end for search*/
+            body: JSON.stringify({search: val}) /*edited by Mike -- using key value pair to mirror the way the data is being retrieved on back end for search
           }).then(res => {
             return res.json();
           }).then(function(data) {
             console.log(data.login)
-        })
+        })*/
     }
   }
   return (
