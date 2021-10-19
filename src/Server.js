@@ -30,7 +30,7 @@ const hashConfig = {
     PEPPER: 'Yerr490'
 }
 
-app.post('/login',async (req, res) => {
+app.post('/login', async (req, res) => {
     let username = req.body.user;
     let password = req.body.pass;
     
@@ -42,10 +42,10 @@ app.post('/login',async (req, res) => {
         conn = await fetchConn();
         // Use Connection
         try {
-            var saltQuery = await getSalt(conn, username);
-            let salt = saltQuery[0].Salt; 
+            let userID = await getUserID(conn, username);
+            let salt = await getSalt(conn, userID);
             if (salt) {
-                isUser = await verifyUser(conn, username, salt, password);
+                isUser = await verifyCredentials(conn, username, salt, password);
                 if (isUser) {
                     var roleQuery = await getRole(conn, username);
                     role = roleQuery[0].AdminRole;
@@ -86,13 +86,51 @@ app.post('/logout', async (req, res) => {
     // remove session from DB
 });
 
-app.post('/feed', async (req, res) => { 
+app.post('/getPosts', async (req, res) => { 
     //TODO: fill in post feed
     // grab following list for user
     // return last 50 posts containing user's following
-});
+    let conn;
+    let error;
+    try {
+        conn = await fetchConn();
+        // Use Connection
+        try {
+            var postQuery = await getPosts(conn);
+            if (salt) {
+                isUser = await verifyCredentials(conn, username, salt, password);
+                if (isUser) {
+                    var roleQuery = await getRole(conn, username);
+                    role = roleQuery[0].AdminRole;
+                } else {
+                    role = 0;
+                }
+            } else {
+                // no Salt -> user exists
+                isUser = false;
+                role = 0;
+            }
+            error = null;
+        } catch(e) {
+            isUser = false;
+            role = 0;
+            error = e;
+        }
+        let response = {
+            'posts': postsObject,
+        }
+        res.send(JSON.stringify(response));
+        
+    } catch (err) {
+        // Manage Errors
+        console.log(err)
+        res.send({error: err});
+    } finally {
+        // Close Connection
+        if (conn) conn.end();
+    }
 
-app.post('/messages', async (req, res) => { 
+app.post('/createPost', async (req, res) => { 
     //TODO: fill in message feed
     // grab thread list involving user with messages within
 });
@@ -127,6 +165,7 @@ function hashSaltPepperPassword(password, salt) {
  *
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} username - Username to check.
+ * @param {String} salt - Salt to check.
  * @param {String} attemptedPassword - Password to attempt.
  **/
 async function verifyCredentials(conn, username, salt, attemptedPassword) {
@@ -136,6 +175,25 @@ async function verifyCredentials(conn, username, salt, attemptedPassword) {
     let usersHash = rows[0].HashedSaltPepperPassword;
 
     return crypto.timingSafeEqual(attemptedHashedSaltedPepperedPassword, Buffer.from(usersHash, 'base64'));
+}
+
+/**
+ * Verifies if auth details are correct.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} userID - UserID to check.
+ * @param {String} sessionString - Session string to attempt.
+ **/
+async function verifyAuthSession(conn, userID, sessionString="") {
+    let sqlQuery = "SELECT COUNT(1) as 'result' from SessionsTable WHERE userID=? AND sessionString=?";
+    let ret = await conn.query(sqlQuery, [userID, sessionString]);
+    let res;
+    try {
+        res = ret[0]['result'];
+    } catch(e) {
+        res = null;
+    }
+    return Boolean(res);
 }
 
 /**
@@ -172,8 +230,9 @@ function getFeedForUserID(conn, userID) {
  * @param {String} userID - Desired userID.
  **/
 async function getSalt(conn, userID) {
-    let sqlQuery = "SELECT Salt from User where userID=?"
-    return await conn.query(sqlQuery, [userID])
+    let sqlQuery = "SELECT Salt from Users where userID=?";
+    let ret = await conn.query(sqlQuery, [userID]);
+    return ret[0];
 }
 
 /**
@@ -183,8 +242,9 @@ async function getSalt(conn, userID) {
  * @param {String} userID - Desired userID.
  **/
 async function getRole(conn, userID) {
-    let sqlQuery = "SELECT AdminRole from User where userID=?"
-    return await conn.query(sqlQuery, [userID])
+    let sqlQuery = "SELECT AdminRole from Users where userID=?";
+    let ret = await conn.query(sqlQuery, [userID]);
+    return ret[0];
 }
 
 /**
@@ -194,8 +254,15 @@ async function getRole(conn, userID) {
  * @param {String} userID - Desired userID.
  **/
 async function getUsername(conn, userID) {
-    let sqlQuery = "SELECT Username from User where userID=?"
-    return await conn.query(sqlQuery, [userID])
+    let sqlQuery = "SELECT username from Users where userID=?";
+    let ret =  await conn.query(sqlQuery, [userID])
+    let res;
+    try {
+        res = ret.slice(0)[0].UserName; //returns as object within array along with meta, remove meta
+    } catch(e) {
+        res = null;
+    }
+    return res;
 }
 
 /**
@@ -205,8 +272,15 @@ async function getUsername(conn, userID) {
  * @param {String} userID - Desired userID.
  **/
 async function getHashedSaltPepperPassword(conn, userID) {
-    let sqlQuery = "SELECT HashedSaltPepperPassword from User where userID=?"
-    return await conn.query(sqlQuery, [userID])
+    let sqlQuery = "SELECT HashedSaltPepperPassword from Userss where userID=?";
+    let ret = await conn.query(sqlQuery, [userID]);
+    let res;
+    try {
+        res = ret[0]['HashedSaltPepperPassword'];
+    } catch(e) {
+        res = null;
+    }
+    return res;
 }
 
 /**
@@ -216,9 +290,22 @@ async function getHashedSaltPepperPassword(conn, userID) {
  * @param {String} userID - Desired poster's userID.
  **/
 async function getPostsFromUserID(conn, userID) {
-    let sqlQuery = "SELECT * from Posts where posterID=?"
-    return await conn.query(sqlQuery, [userID])
+    let sqlQuery = "SELECT * from Posts where posterID=?";
+    let ret = await conn.query(sqlQuery, [userID]);
+    return ret.slice(0);
 }
+
+/**
+ * Gets all posts from database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ **/
+ async function getPosts(conn) {
+    let sqlQuery = "SELECT * from Posts LIMIT 100";
+    let ret = await conn.query(sqlQuery);
+    return ret.slice(0);
+}
+
 
 /**
  * Gets post from a postID from database.
@@ -227,8 +314,9 @@ async function getPostsFromUserID(conn, userID) {
  * @param {String} postID - Desired postID.
  **/
 async function getPostFromPostID(conn, postID) {
-    let sqlQuery = "SELECT * from Posts where postID=?"
-    return await conn.query(sqlQuery, [postID])
+    let sqlQuery = "SELECT * from Posts where postID=?";
+    let ret = conn.query(sqlQuery, [postID]);
+    return ret.slice(0);
 }
 
 /**
@@ -238,8 +326,9 @@ async function getPostFromPostID(conn, postID) {
  * @param {String} postID - Desired postID.
  **/
 async function getCommentsFromPostID(conn, postID) {
-    let sqlQuery = "SELECT * from Comments where postID=?"
-    return await conn.query(sqlQuery, [postID])
+    let sqlQuery = "SELECT * from Comments where postID=?";
+    let ret = await conn.query(sqlQuery, [postID]);
+    return ret.slice(0);
 }
 
 /**
@@ -250,17 +339,6 @@ async function getCommentsFromPostID(conn, postID) {
  **/
 async function getThreadsFromUserID(conn, userID) {
     let sqlQuery = "SELECT * from Threads where userID=?"
-    return await conn.query(sqlQuery, [userID])
-}
-
-/**
- * Gets username from a userID from database.
- *
- * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
- **/
-async function getUsernameFromUserID(conn, userID) {
-    let sqlQuery = "SELECT username from User where userID=?"
     return await conn.query(sqlQuery, [userID])
 }
 
@@ -375,4 +453,3 @@ async function blockComment(conn, commentID) {
 
 // Run web server
 app.listen(PORT, () => console.log("Listening on port %s", PORT));
-//verifyUser("admin", "admin")
