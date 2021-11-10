@@ -22,8 +22,8 @@ CREATE TABLE SessionsTable (
 CREATE TABLE Posts (
     postID int AUTO_INCREMENT UNIQUE NOT NULL,
     userID int not NULL,
-    varchar(1000),
     fileNames varchar(1000),
+    postText varchar(1000),
     postDatetime int NOT NULL,
     blockStatus int NOT NULL,
     PRIMARY KEY(postID),
