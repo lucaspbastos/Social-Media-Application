@@ -27,15 +27,16 @@ app.post('/login', async (req, res) => {
     let password = req.body.password;
     let conn;
     let isUser = false;
-    let role = 0;
-    let error= null;
+    let role = null;
+    let error = null;
     let authString = null;
+    let userID = null;
 
     try {
         conn = await fetchConn();
         // Use Connection
         try {
-            const userID = await getUserID(conn, username);
+            userID = await getUserID(conn, username);
             const salt = await getSalt(conn, userID);
             if (salt) {
                 isUser = await verifyCredentials(conn, userID, salt, password);
@@ -50,6 +51,7 @@ app.post('/login', async (req, res) => {
             error = e;
         }
         let response = {
+            'userID': userID,
             'login': authString,
             'role': role,
             'error': error
@@ -76,6 +78,7 @@ app.post('/getPosts', async (req, res) => {
     let error = null;
     let postsArray = [];
     let sessionString = req.body.sessionString;
+    let username = req.body.username;
     let userID = req.body.userID;
     let authenticated = false;
 
@@ -196,7 +199,6 @@ app.post('/createComment', async (req, res) => {
     let postID = req.body.postID;
     let commentText = req.body.commentText;
     let commentAttachments = req.body.commentAttachments;
-    let sessionString = req.body.sessionString;
     let authenticated = false;
     let conn;
 
@@ -221,7 +223,6 @@ app.post('/createComment', async (req, res) => {
         if (conn) conn.end();
     }
 
-    let conn;
     let error = null;
     let createResult = false;
 
@@ -832,7 +833,7 @@ async function getThreadsWithUserID(conn, userID) {
     let sqlQuery = "SELECT * from Threads where userID=? LIMIT 100";
     const ret = await conn.query(sqlQuery, userID);
     const res = ret.slice(0);
-    let res = [];
+    //let res = [];
     // for (const thread of threads) {
     //     const userIDs = thread.userIDs;
     //     const parsedUserIDs = JSON.parse(userIDs)
