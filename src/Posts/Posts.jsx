@@ -22,25 +22,23 @@ function Posts() {
         user: {}
     });
 
-    //initial load
-    // if (run == 0) {
-    //     console.log(run)
-    //     fetch('http://localhost:3002/getPosts', {
-    //         method: 'POST',
-    //         headers: {"Content-Type": "application/json"},
-    //         body: JSON.stringify({})
+    console.log("admin is "+AuthData.getAdmin())
 
-    //     }).then(res => {
-    //         return res.json();
-    //     }).then(function(data){
-    //         console.log("data", data)
-    //         setdataObject(data)
-    //         console.log(dataObject)
-    //     })
-    // }
-    
+    //fetch data onload
+    useEffect(()=>{
+            fetch('http://localhost:3002/getPosts', {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
 
-    
+            }).then(res => {
+                return res.json();
+            }).then(function(data){
+                setdataObject(data)
+            })
+    }, [])
+
+    //fetch every post
     useEffect(()=>{
         if(newpost===true){
             console.log("new post was made")
@@ -57,6 +55,7 @@ function Posts() {
             })
         }
     }, [newpost])
+
     if(AuthData.getAuth()!=="true"){
         return <Redirect to="/"/>;
     }
@@ -82,12 +81,7 @@ function Posts() {
             console.log("nothing entered")
         }
     }
-    // //remove this placeholder
-    // const dataObject = {
-    //     posts: [
-    //         { id: 1, imgUrl: "https://secure.img1-fg.wfcdn.com/im/98270403/resize-h800-w800%5Ecompr-r85/8470/84707680/Pokemon+Pikachu+Wall+Decal.jpg", text : "<i><strong>somedata</strong></i>", user: "bob", comments: [{id: 1, imgUrl: "", text: "comment1", user: "blah"}, { id: 2, text: "comment2", user: "blah"}]}, { id: 2, text : "blah blah blah", user: "bob", comments: [{id: 1, text: "comment1", user: "blah"}, { id: 2, text: "comment3", user: "comment4"}]}
-    //     ]
-    // };
+    
     
     return (
         <div style={{textAlign: "center"}}>
@@ -104,14 +98,9 @@ function Posts() {
                     Post Message:
                     <br/>
                     <div className = "editor" style={{display: "block", marginLeft: "auto", marginRight: "auto", width:"50%"}}>
-                        <CKEditor
-                            editor={ ClassicEditor }
-                            data={msg}
-                            onChange={ ( event, editor ) => {
-                                const data = editor.getData();
-                                setMsg(data)
-                            }}
-                        />
+                    <label >
+                        <textarea style={{width: "250px"}} type="text" name="message" value={msg} onChange={(e) => setMsg(e.target.value)} />
+                    </label>
                     </div>
                     </label>
                     <br/>
@@ -126,16 +115,19 @@ function Posts() {
 
                 <div>
                     {dataObject.posts.map((post)=>
-                        <div key={post.id}>
-                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames}/>
-                            {post.comments.map((comment) => 
-                                <div key={comment.commentID }>
-                                    <Comment id={comment.commentID} comment={comment.commentText} />
-                                    <br/>
-                                </div>
-                            )}  
-                            <br/>
-                        </div>
+                            post.blockStatus === 0 && (
+                            <div key={post.id}>
+                                {console.log(post)}
+                                <PostCards id={post.postID} caption={post.fileNames} imgUrl={post.fileNames}/>
+                                {post.comments.map((comment) => 
+                                    <div key={comment.commentID }>
+                                        <Comment id={comment.commentID} comment={comment.commentText} />
+                                        <br/>
+                                    </div>
+                                )}  
+                                <br/>
+                            </div>
+                        )                                 
                     )}               
                 </div>
             </div >
