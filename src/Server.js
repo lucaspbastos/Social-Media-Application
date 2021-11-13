@@ -889,7 +889,7 @@ async function createPostFromUserID(conn, userID, postText, postAttachments) {
     let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?, ?, ?)"
     const epochTime = new Date().getTime()/1000;
     const blockStatus = 0;
-    const row = await conn.query(sqlQuery, [0, userID, postText, postAttachments, epochTime, blockStatus]);
+    const row = await conn.query(sqlQuery, [0, userID, postAttachments, postText, epochTime, blockStatus]);
     if (row.constructor.name == "OkPacket") {
         return true;
     }
