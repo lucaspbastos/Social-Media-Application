@@ -25,7 +25,7 @@ function Messages() {
           fetch('http://localhost:3002/getThreads', {
               method: 'POST',
               headers: {"Content-Type": "application/json"},
-              body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: AuthData.getLastThread()})
+              body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: AuthData.getLastThread()})
 
             }).then(res => {
               return res.json();
@@ -64,7 +64,7 @@ function Messages() {
         fetch('http://localhost:3002/createMessage', {
           method: 'POST',
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: 1, recipientUserIDs: currUsr, messageText: msg, messageAttachments: ""})
+          body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: 1, recipientUserIDs: currUsr, messageText: msg, messageAttachments: ""})
 
         }).then(res => {
           return res.json();

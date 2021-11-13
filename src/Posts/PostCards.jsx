@@ -12,7 +12,7 @@ function PostCards({ id, caption, imgUrl }) {
         fetch('http://localhost:3002/blockPost', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
+            body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
 
         }).then(res => {
             return res.json();
@@ -30,7 +30,7 @@ function PostCards({ id, caption, imgUrl }) {
         fetch('http://localhost:3002/createComment', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), commentText: cmnt, commentAttachments: "", postID: pstid})
+            body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), commentText: cmnt, commentAttachments: "", postID: pstid})
         }).then(res => {
             return res.json();
         }).then(function(data) {

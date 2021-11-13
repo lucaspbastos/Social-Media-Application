@@ -29,7 +29,7 @@ function Posts() {
             fetch('http://localhost:3002/getPosts', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
+                body: JSON.stringify({ userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
 
             }).then(res => {
                 return res.json();
@@ -46,7 +46,7 @@ function Posts() {
             fetch('http://localhost:3002/getPosts', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
+                body: JSON.stringify({ userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
 
             }).then(res => {
                 return res.json();
@@ -68,7 +68,7 @@ function Posts() {
             fetch('http://localhost:3002/createPost', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), text: msgs, attachment: imgs})
+                body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), text: msgs, attachment: imgs})
             }).then(res => {
                 return res.json();
             }).then(function(data) {
