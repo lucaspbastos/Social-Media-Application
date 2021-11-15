@@ -68,7 +68,12 @@ function Posts() {
             fetch('http://localhost:3002/createPost', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), text: msgs, attachment: imgs})
+                body: JSON.stringify({
+                    userID: AuthData.getID(), 
+                    sessionString: AuthData.getSessionString(), 
+                    text: msgs, 
+                    attachment: imgs
+                })
             }).then(res => {
                 return res.json();
             }).then(function(data) {
@@ -115,7 +120,7 @@ function Posts() {
 
                 <div>
                     {dataObject.posts.map((post)=>
-                            post.blockStatus === 0 && (
+                            (
                             <div key={post.id}>
                                 {console.log(post)}
                                 <PostCards id={post.postID} caption={post.fileNames} imgUrl={post.fileNames}/>
