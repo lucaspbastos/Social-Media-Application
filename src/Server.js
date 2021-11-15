@@ -143,15 +143,19 @@ app.post('/unfollow', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            let followingList = await getFollowingListForUserID(conn, userID);
-            let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
-            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
-            if (updatedFollowingList && followingList.length != newList.length) {
-                response = {
-                    'unfollowed': updatedFollowingList
+            if (unfollowUserID != userID) {
+                let followingList = await getFollowingListForUserID(conn, userID);
+                let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
+                const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
+                if (updatedFollowingList && followingList.length != newList.length) {
+                    response = {
+                        'unfollowed': updatedFollowingList
+                    }
+                } else {
+                    throw 'could not unfollow';
                 }
             } else {
-                throw 'could not unfollow';
+                throw 'cannot unfollow self';
             }
         } else {
             throw 'bad auth';
@@ -175,15 +179,12 @@ app.post('/search', async (req, res) => {
 
     try {
         conn = await fetchConn();
-        //const isUser = await verifyAuthSession(conn, userID, sessionString);
-        //TODO: change userObject["username"] to "users"
-        isUser=true;
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
             let resultsObject = {};
             let userObject = {
-                "username": []
+                "users": []
             };
-            userObject["username"] = [];
             let postsArray = [];
 
             //find close matches
@@ -192,7 +193,7 @@ app.post('/search', async (req, res) => {
             if (others) {
                 for (let username of others) {
                     if (username.username.includes(searchQuery)) {
-                        userObject["username"].push(username.username);
+                        userObject["users"].push(username.username);
                     }
                 }
             }
@@ -242,15 +243,36 @@ app.post('/getPosts', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
+            let posts;
             let postsArray = [];
 
-            // let following = await getFollowing(conn, userID);
-            // let posts = await getPostsFromFollowing(conn, following);
-            const posts = await getAllPosts(conn);
-            for (const post of posts) {
+            const role = await getRole(conn, userID);
+            if (role == 1) {
+                posts = await getAllPosts(conn);
+            } else {
+                let following = await getFollowingListForUserID(conn, userID);
+                if (following.length != 0) {
+                    posts = await getPostsFromFollowing(conn, following);
+                } else {
+                    throw 'error getting followers';
+                }
+            }
+            for (let post of posts) {
+                // Hide blocked posts from non-admins
+                if (post.blockStatus == 1 && role != 1) {
+                    continue;
+                }
                 const postID = post.postID;
-                const commentsArray = await getCommentsFromPostID(conn, postID);
-                post["comments"] = commentsArray;
+                // Stringified array to array
+                post["fileNames"] = JSON.parse(post["fileNames"]);
+
+                let comments = await getCommentsFromPostID(conn, postID);
+                for (let comment of comments) {
+                    // Stringified array to array
+                    comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                }
+
+                post["comments"] = comments;
                 postsArray.push(post);
             }
             response = {
@@ -287,6 +309,52 @@ app.post('/createPost', async (req, res) => {
                 }
             } else {
                 throw 'could not create post';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/getComments', async (req, res) => {
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            // const role = await getRole(conn, userID);
+            // if (role == 1) {
+            //     posts = await getAllPosts(conn);
+            // } else {
+            //     let following = await getFollowingListForUserID(conn, userID);
+            //     if (following.length != 0) {
+            //         posts = await getPostsFromFollowing(conn, following);
+            //     } else {
+            //         throw 'error getting followers';
+            //     }
+            // }
+            
+            let comments = await getCommentsFromPostID(conn, postID);
+            
+            for (let comment of comments) {
+                // Stringified array to array
+                comment["fileNames"] = JSON.parse(comment["fileNames"]);
+            }
+                
+            response = {
+                'comments': comments,
             }
         } else {
             throw 'bad auth';
@@ -456,8 +524,16 @@ app.post('/createUser', async (req, res) => {
             if (role == 1) {
                 const created = await createUser(conn, newUsername, password, 0);
                 if (created) {
-                    response = {
-                        'created': created,
+                    const newUserID = await getUserID(conn, newUsername);
+                    let followingList = [];
+                    followingList.push(Number(newUserID));
+                    const updatedFollowingList = await updateFollowingListForUserID(conn, newUserID, followingList);
+                    if (updatedFollowingList) {
+                        response = {
+                            'created': created,
+                        }
+                    } else {
+                        throw 'error setting up user';
                     }
                 } else {
                     throw 'could not create user';
@@ -489,7 +565,7 @@ app.post('/blockPost', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            const role = await getRoleFromUserID(conn, userID);
+            const role = await getRole(conn, userID);
             if (role == 1) {
                 const blocked = await blockPost(conn, postID);
                 if (blocked) {
@@ -524,12 +600,12 @@ app.post('/unblockPost', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            const role = await getRoleFromUserID(conn, userID);
+            const role = await getRole(conn, userID);
             if (role == 1) {
                 const unblocked = await unblockPost(conn, postID);
                 if (unblocked) {
                     response = {
-                        'blocked': blocked,
+                        'unblocked': unblocked,
                     }
                 } else {
                     throw 'could not unblock post';
@@ -792,7 +868,7 @@ async function getAllPosts(conn) {
  * @param {Array<Number>} following - List of users to grab posts from.
  **/
 async function getPostsFromFollowing(conn, following) {
-    let sqlQuery = "SELECT * from Posts WHERE userID in (?) LIMIT 100 ORDER BY postDatetime ASC";
+    let sqlQuery = "SELECT * from Posts WHERE userID in (?)";
     let ret = await conn.query(sqlQuery, [following]);
     return ret.slice(0);
 }
@@ -872,7 +948,7 @@ async function getMessagesFromThreadID(conn, threadID) {
  * Sets new following list for userID.
  * @param {Promise<any>} conn - Pool connection.
  * @param {Number} userID - Desired userID.
- * @param {Number} followingList - Desired new following list.
+ * @param {Array<Number>} followingList - Desired new following list.
  **/
 async function updateFollowingListForUserID(conn, userID, followingList) {
     let sqlQuery = "UPDATE Users SET followingList=? WHERE userID=?";
@@ -894,9 +970,14 @@ async function updateFollowingListForUserID(conn, userID, followingList) {
  **/
 async function createPostFromUserID(conn, userID, postText, postAttachments) {
     let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?, ?, ?)"
-    const epochTime = new Date().getTime()/1000;
+    let fileNames = [];
+    for (let attachment of postAttachments.split(',')) {
+        fileNames.push(attachment.trim());
+    }
+    // fileNames.push(postAttachments);
     const blockStatus = 0;
-    const row = await conn.query(sqlQuery, [0, userID, postAttachments, postText, epochTime, blockStatus]);
+    const epochTime = new Date().getTime()/1000;
+    const row = await conn.query(sqlQuery, [0, userID, JSON.stringify(fileNames), postText, epochTime, blockStatus]);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
@@ -910,13 +991,17 @@ async function createPostFromUserID(conn, userID, postText, postAttachments) {
  * @param {Number} userID - Desired userID.
  * @param {Number} postID - Desired postID to comment under.
  * @param {String} commentText - Desired comment text.
- * @param {String} commentAttachments - Desired comment attachments.
+ * @param {Array<String>} commentAttachments - Desired comment attachments.
  **/
 async function createCommentFromUserID(conn, userID, postID, commentText, commentAttachments) {
     let sqlQuery = "INSERT INTO Comments VALUES (?, ?, ?, ?, ?, ?, ?)"
-    const epochTime = new Date().getTime()/1000;
+    let fileNames = [];
+    for (let attachment of commentAttachments.split(',')) {
+        fileNames.push(attachment.trim());
+    }
     const blockStatus = 0;
-    const row = await conn.query(sqlQuery, [0, userID, postID, commentText,commentAttachments, epochTime, blockStatus]);
+    const epochTime = new Date().getTime()/1000;
+    const row = await conn.query(sqlQuery, [0, userID, postID, commentText, JSON.stringify(fileNames), epochTime, blockStatus]);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
@@ -987,9 +1072,9 @@ async function createMessageFromUserID(conn, threadID, senderUserID, recipientUs
 async function createUser(conn, username, password, role) {
     const salt = generateSalt(hashConfig.SALT_LEN).toString('base64');
     const hashedSaltedPepperedPassword = hashSaltPepperPassword(password, salt.toString('base64'));
-    let sqlQuery = "INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, ?)"
+    let sqlQuery = "INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     //const epochTime = Date.now()/1000;
-    const row = await conn.query(sqlQuery, [0, username, hashedSaltedPepperedPassword.toString('base64'), salt, "[]", 1, role]);
+    const row = await conn.query(sqlQuery, [0, username, hashedSaltedPepperedPassword.toString('base64'), salt, "[]", "[]", 1, role]);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
