@@ -58,7 +58,6 @@ CREATE TABLE Messages (
     messageID int AUTO_INCREMENT UNIQUE NOT NULL,
     threadID int NOT NULL,
     userID int NOT NULL,
-    recipientUserIDs varchar(1000) NOT NULL,
     messageText varchar(1000),
     fileNames varchar(1000),
     messageDatetime int NOT NULL,
