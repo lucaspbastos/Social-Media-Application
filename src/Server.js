@@ -3,7 +3,6 @@
 const express = require('express');
 const crypto = require('crypto');
 const cors = require('cors');
-const session = require('express-session');
 const pool = require('./db');
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
@@ -11,17 +10,6 @@ const PORT = process.env.SERVER_PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(session({
-//     secret: process.env.SESSION_SECRET,
-//     resave: false,
-//     saveUninitialized: true,
-//     cookie: { secure: false }
-// }));
-
-// if (process.env.DEPLOYMENT === 'prod') {
-//     app.set('trust proxy', 1) // trust first proxy
-//     sess.cookie.secure = true // serve secure cookies
-// }
 
 /**
  * Contains options and parameters for hashing functions.
@@ -37,437 +25,541 @@ const hashConfig = {
 app.post('/login', async (req, res) => {
     let username = req.body.username;
     let password = req.body.password;
+    let response;
     let conn;
-    let isUser = false;
-    let role = 0;
-    let error= null;
-    let authString = null;
 
     try {
         conn = await fetchConn();
-        // Use Connection
-        try {
-            const userID = await getUserID(conn, username);
+        const userID = await getUserID(conn, username);
+        if (userID) {
             const salt = await getSalt(conn, userID);
             if (salt) {
-                isUser = await verifyCredentials(conn, userID, salt, password);
-                //TODO: generate session
+                const isUser = await verifyCredentials(conn, userID, salt, password);
                 if (isUser) {
-                    role = await getRole(conn, userID);
-                    authString = await generateSession(conn, userID);
-                    //TODO: use express-session for session storing
+                    const role = await getRole(conn, userID);
+                    const authString = await generateSession(conn, userID);
+                    response = {
+                        'userID': userID,
+                        'login': authString,
+                        'role': role,
+                    }
                 } else {
-                    error = 'bad creds';
+                    throw 'bad auth';
                 }
+            } else {
+                throw 'bad auth';
             }
-        } catch(e) {
-            error = e;
+        } else {
+            throw "bad auth";  
         }
-        let response = {
-            'login': authString,
-            'role': role,
-            'error': error
-        }
-        res.send(JSON.stringify(response));
-        
     } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
+        response = {
+            'error': err
+        }; 
     } finally {
-        // Close Connection
         if (conn) conn.end();
+        res.send(JSON.stringify(response));
     }
 });
 
 app.post('/logout', async (req, res) => { 
-    //TODO: fill in lougout
-    // destroy local cookie
-    // remove session from DB
-});
-
-app.post('/getPosts', async (req, res) => { 
-    //TODO: only grab posts from users following
+    let userID = req.body.userID;
+    let sessionString = req.body.sessionString;
+    let response;
     let conn;
-    let error = null;
-    let postsArray = [];
+
     try {
         conn = await fetchConn();
-        // Use Connection
-        try {
-            let posts = await getPosts(conn);
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const loggedOut = await removeSession(conn, userID, sessionString);
+            if (loggedOut) {
+                response = {
+                    'loggedOut': loggedOut
+                }
+            } else {
+                throw 'could not log out';
+            }
+            
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/follow', async (req, res) => { 
+    let userID = req.body.userID;
+    let followUserID = req.body.followUserID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let followingList = await getFollowingListForUserID(conn, userID);
+            if (followingList.includes(Number(followUserID))) {
+                throw 'already following';
+            } else {
+                followingList.push(Number(followUserID));
+            }
+            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, followingList);
+            if (updatedFollowingList) {
+                response = {
+                    'followed': updatedFollowingList
+                }
+            } else {
+                throw 'could not follow';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/unfollow', async (req, res) => { 
+    let userID = req.body.userID;
+    let unfollowUserID = req.body.unfollowUserID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let followingList = await getFollowingListForUserID(conn, userID);
+            let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
+            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
+            if (updatedFollowingList && followingList.length != newList.length) {
+                response = {
+                    'unfollowed': updatedFollowingList
+                }
+            } else {
+                throw 'could not unfollow';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/search', async (req, res) => {
+    let userID = req.body.userID;
+    let searchQuery = req.body.search;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        //const isUser = await verifyAuthSession(conn, userID, sessionString);
+        //TODO: change userObject["username"] to "users"
+        isUser=true;
+        if (isUser) {
+            let resultsObject = {};
+            let userObject = {
+                "username": []
+            };
+            userObject["username"] = [];
+            let postsArray = [];
+
+            //find close matches
+            const others = await getAllUsers(conn);
+            console.log(others)
+            if (others) {
+                for (let username of others) {
+                    if (username.username.includes(searchQuery)) {
+                        userObject["username"].push(username.username);
+                    }
+                }
+            }
+
+            //find posts
+            const posts = await getAllPosts(conn);
+            if (posts) {
+                for (let post of posts) {
+                    const text = post.postText;
+                    const textSplit = text.split(" ");
+                    if (textSplit.includes(searchQuery)) {
+                        const postID = post.postID;
+                        const commentsArray = await getCommentsFromPostID(conn, postID);
+                        post["comments"] = commentsArray;
+                        postsArray.push(post);
+                    }
+                }
+            }
+            
+            resultsObject["user"] = userObject;
+            resultsObject["posts"] = postsArray;
+
+            response = {
+                'results': resultsObject,
+            }
+            console.log(response);
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/getPosts', async (req, res) => {
+    let userID = req.body.userID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let postsArray = [];
+
+            // let following = await getFollowing(conn, userID);
+            // let posts = await getPostsFromFollowing(conn, following);
+            const posts = await getAllPosts(conn);
             for (const post of posts) {
                 const postID = post.postID;
                 const commentsArray = await getCommentsFromPostID(conn, postID);
                 post["comments"] = commentsArray;
                 postsArray.push(post);
             }
-        } catch(e) {
-            error = e;
+            response = {
+                'posts': postsArray,
+            }
+        } else {
+            throw 'bad auth';
         }
-        let response = {
-            'posts': postsArray,
-            'error': error
-        }
-        res.send(JSON.stringify(response));
-        
     } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
+        response = {
+            'error': err
+        };
     } finally {
-        // Close Connection
         if (conn) conn.end();
+        res.send(JSON.stringify(response));
     }
 });
 
 app.post('/createPost', async (req, res) => { 
-    let username = req.body.username;
-    let role = req.body.role;
-    let sessionString = req.body.sessionString;
+    let userID = req.body.userID;
     let postText = req.body.text;
+    let sessionString = req.body.sessionString;
     let postAttachments = req.body.attachment;
     let conn;
-    let passAuth = false;
-    let error = null;
-    let createResult = false;
 
     try {
         conn = await fetchConn();
-        const userID = await getUserID(conn, username);
-        if (await verifyAuthSession(conn, userID, sessionString)) {
-            passAuth = true;
-        } else {
-            res.send({
-                'created': false,
-                'error': 'bad auth'
-            });
-        }
-    } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
-    } finally {
-        // Close Connection
-        if (conn) conn.end();
-    }
-
-    if (passAuth) {
-        try {
-            conn = await fetchConn();
-            // Use Connection
-            try {
-                const userID = await getUserID(conn, username);
-                createResult = await createPostFromUserID(conn, userID, postAttachments, postText);
-            } catch(e) {
-                error = e;
-            }
-            let response = {
-                'created': createResult,
-                'error': error
-            }
-            res.send(JSON.stringify(response));
-            
-        } catch (err) {
-            // Manage Errors
-            console.log(err)
-            res.send({error: err});
-        } finally {
-            // Close Connection
-            if (conn) conn.end();
-        }
-    }
-});
-
-app.post('/search', async (req, res) => {
-    let searchQuery = req.body.search;
-    let conn;
-    let error = null;
-    let resultsObject = {};
-    let userObject = {};
-    let postsArray = [];
-
-    try {
-        conn = await fetchConn();
-        // Use Connection
-        try {
-            // find users
-            const user = await getUserID(conn, searchQuery);
-
-            if (Boolean(user)) {
-                userObject["userID"] = user;
-                userObject["username"] = searchQuery;
-            }
-
-            //find posts
-            let posts = await getPosts(conn);
-            for (const post of posts) {
-                const text = post.postText;
-                const textSplit = text.split(" ");
-                if (textSplit.includes(searchQuery)) {
-                    const postID = post.postID;
-                    const commentsArray = await getCommentsFromPostID(conn, postID);
-                    post["comments"] = commentsArray;
-                    postsArray.push(post);
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const created = await createPostFromUserID(conn, userID, postText, postAttachments);
+            if (created) {
+                response = {
+                    'created': created,
                 }
+            } else {
+                throw 'could not create post';
             }
-            resultsObject["user"] = userObject;
-            resultsObject["posts"] = postsArray;
-        } catch(e) {
-            error = e;
+        } else {
+            throw 'bad auth';
         }
-        const response = {
-            'results': resultsObject,
-            'error': error
-        }
-        res.send(JSON.stringify(response));
-        
     } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
+        response = {
+            'error': err
+        };
     } finally {
-        // Close Connection
         if (conn) conn.end();
+        res.send(JSON.stringify(response));
     }
 });
+
+app.post('/createComment', async (req, res) => { 
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let commentText = req.body.commentText;
+    let sessionString = req.body.sessionString;
+    let commentAttachments = req.body.commentAttachments;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const created = await createCommentFromUserID(conn, userID, postID, commentText, commentAttachments);
+            if (created) {
+                response = {
+                    'created': created
+                }
+            } else {
+                throw 'could not create comment';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response ={
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
 
 app.post('/getThreads', async (req, res) => { 
-    const username = req.body.username;
-    let role = req.body.role;
+    let userID = req.body.userID;
     let sessionString = req.body.sessionString;
-    let postText = req.body.text;
-    let postAttachments = req.body.imgUrl;
-    let lastThread = req.body.threadID;
+    let response;
     let conn;
 
     try {
         conn = await fetchConn();
-        const userID = await getUserID(conn, username);
-        const authCheck = await verifyAuthSession(conn, userID, sessionString);
-        
-    } catch (err) {
-        // Manage Errors
-        console.log("in first try:", err)
-        res.send({error: err});
-    } finally {
-        // Close Connection
-        if (conn) conn.end();
-    }
-    
-
-    let error = null;
-    let threadsArray = [];
-
-    try {
-        conn = await fetchConn();
-        // Use Connection
-        try {
-            const userID = await getUserID(conn, username);
-            let threads = await getThreadsWithUserID(conn, userID);
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let threadsArray = [];
+            const threads = await getThreadsWithUserID(conn, userID);
+            console.log(threads);
             for (let thread of threads) {
                 const threadID = thread.threadID;
                 const messagesArray = await getMessagesFromThreadID(conn, threadID);
                 thread["messages"] = messagesArray;
                 threadsArray.push(thread);
             }
-            const response = {
-            'threads': threadsArray,
-            'error': error
+
+            response = {
+                'threads': threadsArray
+            }
+            console.log(response);
+        } else {
+            throw 'bad auth';
         }
-        res.send(JSON.stringify(response));
-        } catch(e) {
-            error = e;
-        }
-        
-        
     } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
+        response = {
+            'error': err
+        };
     } finally {
-        // Close Connection
         if (conn) conn.end();
+        res.send(JSON.stringify(response));
     }
 });
 
 app.post('/createThread', async (req, res) => { 
-    //TODO: fill in new thread creation
+    let userID = req.body.userID;
+    let threadName = req.body.threadName;
+    let sessionString = req.body.sessionString;
+    let recipientUserIDs = req.body.recipientUserIDs;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const created = await createThread(conn, threadName, recipientUserIDs);
+            if (created) {
+                response = {
+                    'created': created,
+                }
+            } else {
+                throw 'could not create thread';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
 });
 
 app.post('/createMessage', async (req, res) => { 
-    //TODO: fill in new thread creation
-    let username = req.body.username;
-    let role = req.body.role;
-    let sessionString = req.body.sessionString;
+    let userID = req.body.userID;
     let threadID = req.body.threadID;
     let recipientUserIDs = req.body.recipientUserIDs;
-    let messageText = req.body.text;
-    let messageAttachments = req.body.imgUrl;
-    //TODO: check session
-
-    let conn;
-    let error = null;
-    let createResult = false;
-
-    try {
-        conn = await fetchConn();
-        // Use Connection
-        try {
-            const userID = await getUserID(conn, username);
-            createResult = await createMessageFromUserID(conn, threadID, userID, recipientUserIDs, messageText, messageAttachments);
-        } catch(e) {
-            error = e;
-        }
-        let response = {
-            'created': createResult,
-            'error': error
-        }
-        res.send(JSON.stringify(response));
-        
-    } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
-    } finally {
-        // Close Connection
-        if (conn) conn.end();
-    }
-});
-
-app.post('/blockPost', async (req, res) => { 
-    let username = req.body.username;
-    let role = req.body.role;
+    let messageText = req.body.messageText;
+    let messageAttachments = req.body.messageAttachments;
     let sessionString = req.body.sessionString;
-    let postID = req.body.postID;
-    let blocked;
-    let passAuth = false;
-    let error = null;
+    let response;
+    let conn;
 
-    //check session
     try {
         conn = await fetchConn();
-        const userID = await getUserID(conn, username);
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            passAuth = true;
+            const createResult = await createMessageFromUserID(conn, threadID, userID, recipientUserIDs, messageText, messageAttachments);
+            if (createResult) {
+                response = {
+                    'created': createResult,
+                }
+            } else {
+                throw 'could not create message';
+            }
         } else {
-            res.send({
-                'blocked': false,
-                'error': 'bad auth'
-            });
+            throw 'bad auth';
         }
     } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
+        response = {
+            'error': err
+        };
     } finally {
-        // Close Connection
         if (conn) conn.end();
-    }
-
-    if (passAuth) {
-        try {
-            conn = await fetchConn();
-            // Use Connection
-            try {
-                if (role == 1) {
-                    blocked = await blockPost(conn, postID);
-                }
-            } catch(e) {
-                error = e;
-            }
-            let response = {
-                'blocked': blocked,
-                'error': error
-            }
-            res.send(JSON.stringify(response));
-            
-        } catch (err) {
-            // Manage Errors
-            console.log(err)
-            res.send({error: err});
-        } finally {
-            // Close Connection
-            if (conn) conn.end();
-        }
+        res.send(JSON.stringify(response));
     }
 });
 
 app.post('/createUser', async (req, res) => { 
-    let username = req.body.username;
-    let role = req.body.role;
-    let sessionString = req.body.sessionString;
-
-    let newUsername = req.body.newUsername;
+    let userID = req.body.userID;
     let password = req.body.password;
+    let newUsername = req.body.newUsername;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
 
-    let passAuth = false;
-    let created = false;
-    let error = null;
-
-    //check session
     try {
         conn = await fetchConn();
-        const userID = await getUserID(conn, username);
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            passAuth = true;
+            const role = await getRole(conn, userID);
+            if (role == 1) {
+                const created = await createUser(conn, newUsername, password, 0);
+                if (created) {
+                    response = {
+                        'created': created,
+                    }
+                } else {
+                    throw 'could not create user';
+                }
+            } else {
+                throw 'not admin';
+            }
         } else {
-            res.send({
-                'created': false,
-                'error': 'bad auth'
-            });
+            throw 'bad auth';
         }
     } catch (err) {
-        // Manage Errors
-        console.log(err)
-        res.send({error: err});
+        response = {
+            'error': err
+        };
     } finally {
-        // Close Connection
         if (conn) conn.end();
+        res.send(JSON.stringify(response));
     }
+});
 
-    if (passAuth) {
-        try {
-            conn = await fetchConn();
-            // Use Connection
-            try {
-                if (role == 1) {
-                    created = await createUser(conn, newUsername, password, 0);
+app.post('/blockPost', async (req, res) => { 
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const role = await getRoleFromUserID(conn, userID);
+            if (role == 1) {
+                const blocked = await blockPost(conn, postID);
+                if (blocked) {
+                    response = {
+                        'blocked': blocked,
+                    }
+                } else {
+                    throw 'could not block post';
                 }
-            } catch(e) {
-                error = e;
+            } else {
+                throw 'not admin';
             }
-            let response = {
-                'created': created,
-                'error': error
-            }
-            res.send(JSON.stringify(response));
-            
-        } catch (err) {
-            // Manage Errors
-            console.log(err)
-            res.send({error: err});
-        } finally {
-            // Close Connection
-            if (conn) conn.end();
         }
+    } catch (err) {
+        response = {
+            error: err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
     }
 });
 
 app.post('/unblockPost', async (req, res) => { 
-    //TODO: fill in post blocking, check auth
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const role = await getRoleFromUserID(conn, userID);
+            if (role == 1) {
+                const unblocked = await unblockPost(conn, postID);
+                if (unblocked) {
+                    response = {
+                        'blocked': blocked,
+                    }
+                } else {
+                    throw 'could not unblock post';
+                }
+            } else {
+                throw 'not admin';
+            }
+        }
+    } catch (err) {
+        response = {
+            error: err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
 });
 
 // misc functions
+
+/**
+ * Returns a connection to the database.
+ **/
 async function fetchConn() {
     let conn = await pool.getConnection();
     return conn;
 }
 
 /**
- * Returns a hashed, salted, and peppered password.
+ * Returns a hashed, salted, and peppered password buffer.
  *
  * @param {String} password - The password to pepper, salt, then hash. * 
  * @param {Buffer} salt - Salt to be used for salting password.
@@ -480,7 +572,7 @@ function hashSaltPepperPassword(password, salt) {
  * Verifies if userID and login are correct.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - UserID to check.
+ * @param {Number} userID - UserID to check.
  * @param {String} salt - Salt to check.
  * @param {String} attemptedPassword - Password to attempt.
  **/
@@ -495,7 +587,7 @@ async function verifyCredentials(conn, userID, salt, attemptedPassword) {
  * Verifies if auth details are correct.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - UserID to check.
+ * @param {Number} userID - UserID to check.
  * @param {String} sessionString - Session string to attempt.
  **/
 async function verifyAuthSession(conn, userID, sessionString="") {
@@ -511,40 +603,46 @@ async function verifyAuthSession(conn, userID, sessionString="") {
 }
 
 /**
- * Generates a random salt of specified length bytes.
+ * Generates a random salt buffer of specified length bytes.
  *
- * @param {number} length - Desired salt length.
+ * @param {Number} length - Desired salt length.
  **/
 function generateSalt(length) {
     return crypto.randomBytes(length/2);
 }
 
+/**
+ * Generate a new session string for a usr.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} userID - Desired userID.
+ **/
 async function generateSession(conn, userID) {
     const sessionString = crypto.randomBytes(64).toString('base64');
     let sqlQuery = "INSERT INTO SessionsTable VALUES (?, ?, ?)"
     const epochTime = new Date().getTime()/1000;
     const row = await conn.query(sqlQuery, [userID, sessionString, epochTime]);
-    if (row.constructor.name == "OkPacket") {
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return sessionString;
     }
     return null;
 }
 
-// async function getFeedForUserID(conn, userID) {
-//     // Get following list
-//     const following = getFollowingListForUserID(conn, userID);
-//     let returnFeed = [];
-
-//     for (followingUserID in following) {
-//         const posts = getPostsFromUserID(conn, followingUserID);
-//         for (postID in posts) {
-//             const comments = getCommentsFromPostID(conn, postID);
-//         }
-//         // TODO: Fix
-//         returnFeed.push({posts, comments});
-//     }
-//     return returnFeed;
-// }
+/**
+ * Generate a new session string for a usr.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} userID - Desired userID.
+ * @param {String} sessionString - Desired session string.
+ **/
+async function removeSession(conn, userID, sessionString) {
+    let sqlQuery = "DELETE FROM SessionsTable WHERE userID=? AND sessionString=?";
+    const row = await conn.query(sqlQuery, [userID, sessionString]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
 
 // get functions
 
@@ -552,49 +650,45 @@ async function generateSession(conn, userID) {
  * Gets user salt from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
+ * @param {Number} userID - Desired userID.
  **/
 async function getSalt(conn, userID) {
-    let sqlQuery = "SELECT salt from Users where userID=?";
+    let sqlQuery = "SELECT salt from Users WHERE userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
-    return ret[0]['salt'];
+    if (ret.length == 0) {
+        return null;
+    }
+    return ret[0].salt;
 }
 
 /**
  * Gets user role from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
+ * @param {Number} userID - Desired userID.
  **/
 async function getRole(conn, userID) {
-    let sqlQuery = "SELECT adminRole from Users where userID=?";
+    let sqlQuery = "SELECT adminRole from Users WHERE userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
-    let res;
-    console.log(res)
-    try {
-        res = ret.slice(0)[0].adminRole; //returns as object within array along with meta, remove meta
-    } catch(e) {
-        res = null;
+    if (ret.length == 0) {
+        return null;
     }
-    return res;
+    return ret[0].adminRole;
 }
 
 /**
  * Gets username from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
+ * @param {Number} userID - Desired userID.
  **/
 async function getUsername(conn, userID) {
-    let sqlQuery = "SELECT username from Users where userID=?";
-    let ret =  await conn.query(sqlQuery, [userID])
-    let res;
-    try {
-        res = ret.slice(0)[0].username; //returns as object within array along with meta, remove meta
-    } catch(e) {
-        res = null;
+    let sqlQuery = "SELECT username from Users WHERE userID=?";
+    let ret =  await conn.query(sqlQuery, [userID]);
+    if (ret.length == 0) {
+        return null;
     }
-    return res;
+    return ret[0].username;
 }
 
 /**
@@ -603,46 +697,80 @@ async function getUsername(conn, userID) {
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} username - Desired username.
  **/
- async function getUserID(conn, username) {
-    let sqlQuery = "SELECT userID from Users where username=?";
-    let ret =  await conn.query(sqlQuery, [username])
-    let res;
-    try {
-        res = ret.slice(0)[0].userID; //returns as object within array along with meta, remove meta
-    } catch(e) {
-        res = null;
+async function getUserID(conn, username) {
+    let sqlQuery = "SELECT userID from Users WHERE username=?";
+    let ret =  await conn.query(sqlQuery, [username]);
+    if (ret.length == 0) {
+        return null;
     }
-    return res;
+    return ret[0].userID;
+}
+
+/**
+ * Gets userID from database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ **/
+async function getAllUsers(conn) {
+    let sqlQuery = "SELECT username from Users";
+    let ret =  await conn.query(sqlQuery);
+    if (ret.length == 0) {
+        return null;
+    }
+    return ret.slice(0);
 }
 
 /**
  * Gets user hashed password from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
+ * @param {Number} userID - Desired userID.
  **/
 async function getHashedSaltPepperPassword(conn, userID) {
-    let sqlQuery = "SELECT HashedSaltPepperPassword from Users where userID=?";
+    let sqlQuery = "SELECT HashedSaltPepperPassword from Users WHERE userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
-    let res;
-    try {
-        res = ret[0]['HashedSaltPepperPassword'];
-    } catch(e) {
-        res = null;
+    if (ret.length == 0) {
+        return null;
     }
-    return res;
+    return ret[0].HashedSaltPepperPassword;
 }
 
 /**
- * TODO: update format
+ * Gets list of following from userID.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} userID - User to grab following list from.
+ **/
+async function getFollowingListForUserID(conn, userID) {
+    let sqlQuery = "SELECT followingList from Users WHERE userID=?";
+    let ret = await conn.query(sqlQuery, [userID]);
+    if (ret.length == 0) {
+        return null;
+    }
+    return JSON.parse(ret[0].followingList);
+}
+
+/**
  * Gets posts for userID from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired poster's userID.
+ * @param {Number} userID - Desired poster's userID.
  **/
 async function getPostsFromUserID(conn, userID) {
-    let sqlQuery = "SELECT * from Posts where posterID=?";
+    let sqlQuery = "SELECT * from Posts WHERE posterID=?";
     let ret = await conn.query(sqlQuery, [userID]);
+    return ret.slice(0);
+}
+
+/**
+ * Gets post that matches postID from database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} postID - Desired postID.
+ **/
+async function getPostsFromPostID(conn, postID) {
+    let sqlQuery = "SELECT * from Posts WHERE postID=?";
+    let ret = await conn.query(sqlQuery, [postID]);
     return ret.slice(0);
 }
 
@@ -651,9 +779,21 @@ async function getPostsFromUserID(conn, userID) {
  *
  * @param {Promise<any>} conn - Pool connection.
  **/
- async function getPosts(conn) {
+async function getAllPosts(conn) {
     let sqlQuery = "SELECT * from Posts LIMIT 100";
     let ret = await conn.query(sqlQuery);
+    return ret.slice(0);
+}
+
+/**
+ * Gets posts from database for list of users.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Array<Number>} following - List of users to grab posts from.
+ **/
+async function getPostsFromFollowing(conn, following) {
+    let sqlQuery = "SELECT * from Posts WHERE userID in (?) LIMIT 100 ORDER BY postDatetime ASC";
+    let ret = await conn.query(sqlQuery, [following]);
     return ret.slice(0);
 }
 
@@ -662,7 +802,7 @@ async function getPostsFromUserID(conn, userID) {
  *
  * @param {Promise<any>} conn - Pool connection.
  **/
- async function getThreads(conn) {
+async function getThreads(conn) {
     let sqlQuery = "SELECT * from Threads LIMIT 100";
     let ret = await conn.query(sqlQuery);
     return ret.slice(0);
@@ -672,10 +812,10 @@ async function getPostsFromUserID(conn, userID) {
  * Gets post from a postID from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} postID - Desired postID.
+ * @param {Number} postID - Desired postID.
  **/
 async function getPostFromPostID(conn, postID) {
-    let sqlQuery = "SELECT * from Posts where postID=?";
+    let sqlQuery = "SELECT * from Posts WHERE postID=?";
     let ret = conn.query(sqlQuery, [postID]);
     return ret.slice(0);
 }
@@ -684,10 +824,10 @@ async function getPostFromPostID(conn, postID) {
  * Gets comments from a postID from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} postID - Desired postID.
+ * @param {Number} postID - Desired postID.
  **/
 async function getCommentsFromPostID(conn, postID) {
-    let sqlQuery = "SELECT * from Comments where postID=?";
+    let sqlQuery = "SELECT * from Comments WHERE postID=?";
     let ret = await conn.query(sqlQuery, [postID]);
     return ret.slice(0);
 }
@@ -696,14 +836,15 @@ async function getCommentsFromPostID(conn, postID) {
  * Gets messages from a userID from database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
+ * @param {Number} userID - Desired userID.
  **/
 async function getThreadsWithUserID(conn, userID) {
+    //TODO: super inefficient, fix
     let sqlQuery = "SELECT * from Threads LIMIT 100";
     const ret = await conn.query(sqlQuery);
     const threads = ret.slice(0);
     let res = [];
-    for (const thread of threads) {
+    for (let thread of threads) {
         const userIDs = thread.userIDs;
         const parsedUserIDs = JSON.parse(userIDs)
         if (parsedUserIDs.includes(userID)) {
@@ -713,8 +854,14 @@ async function getThreadsWithUserID(conn, userID) {
     return res;
 }
 
+/**
+ * Gets messages from a threadID from database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} threadID - Desired threadID.
+ **/
 async function getMessagesFromThreadID(conn, threadID) {
-    let sqlQuery = "SELECT * from Messages where threadID=?";
+    let sqlQuery = "SELECT * from Messages WHERE threadID=?";
     let ret = await conn.query(sqlQuery, [threadID]);
     return ret.slice(0);
 }
@@ -722,20 +869,16 @@ async function getMessagesFromThreadID(conn, threadID) {
 // set functions
 
 /**
- * Creates a new user in the database.
- *
+ * Sets new following list for userID.
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} username - Desired username.
- * @param {String} password - Desired password.
- * @param {String} role - Desired role.
+ * @param {Number} userID - Desired userID.
+ * @param {Number} followingList - Desired new following list.
  **/
- async function createUser(conn, username, password, role) {
-    const salt = generateSalt(hashConfig.SALT_LEN).toString('base64');
-    const hashedSaltedPepperedPassword = hashSaltPepperPassword(password, salt.toString('base64'));
-    let sqlQuery = "INSERT INTO Users VALUES (?, ?, ?, ?, ?)"
-    //const epochTime = Date.now()/1000;
-    const row = await conn.query(sqlQuery, [0, username, hashedSaltedPepperedPassword.toString('base64'), salt, role]);
-    if (row.constructor.name == "OkPacket") {
+async function updateFollowingListForUserID(conn, userID, followingList) {
+    let sqlQuery = "UPDATE Users SET followingList=? WHERE userID=?";
+    const row = await conn.query(sqlQuery, [JSON.stringify(followingList), userID]);
+    console.log(row);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
     return false;
@@ -745,16 +888,16 @@ async function getMessagesFromThreadID(conn, threadID) {
  * Creates a post by userID into database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
+ * @param {Number} userID - Desired userID.
  * @param {String} postText - Desired post text.
- * @param {String} postAttachments - Desired post attachments.
+ * @param {Array<String>} postAttachments - Desired post attachments.
  **/
-async function createPostFromUserID(conn, userID, postAttachments, postText) {
+async function createPostFromUserID(conn, userID, postText, postAttachments) {
     let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?, ?, ?)"
     const epochTime = new Date().getTime()/1000;
     const blockStatus = 0;
-    const row = await conn.query(sqlQuery, [0, userID, postText, postAttachments, epochTime, blockStatus]);
-    if (row.constructor.name == "OkPacket") {
+    const row = await conn.query(sqlQuery, [0, userID, postAttachments, postText, epochTime, blockStatus]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
     return false;
@@ -764,8 +907,8 @@ async function createPostFromUserID(conn, userID, postAttachments, postText) {
  * Blocks a comment by userID for postID into database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} userID - Desired userID.
- * @param {String} postID - Desired postID to comment under.
+ * @param {Number} userID - Desired userID.
+ * @param {Number} postID - Desired postID to comment under.
  * @param {String} commentText - Desired comment text.
  * @param {String} commentAttachments - Desired comment attachments.
  **/
@@ -774,7 +917,39 @@ async function createCommentFromUserID(conn, userID, postID, commentText, commen
     const epochTime = new Date().getTime()/1000;
     const blockStatus = 0;
     const row = await conn.query(sqlQuery, [0, userID, postID, commentText,commentAttachments, epochTime, blockStatus]);
-    if (row.constructor.name == "OkPacket") {
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Creates a message from a sender userID to recipient userID into database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} threadName - Desired threadName.
+ * @param {String[]} recipientUserIDs - Desired recipient userID(s).
+ **/
+async function createThread(conn, threadName, recipientUserIDs) {
+    let sqlQuery = "INSERT INTO Threads VALUES (?, ?)"
+    const row = await conn.query(sqlQuery, [threadName, recipientUserIDs]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Creates a message from a sender userID to recipient userID into database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} threadName - Desired new threadName.
+ * @param {Number} threadID - Desired threadID to change.
+ **/
+async function changeThreadName(conn, threadName, threadID) {
+    let sqlQuery = "UPDATE Threads SET threadName=? WHERE threadID=?"
+    const row = await conn.query(sqlQuery, [threadName, threadID]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
     return false;
@@ -793,7 +968,7 @@ async function createMessageFromUserID(conn, threadID, senderUserID, recipientUs
     let sqlQuery = "INSERT INTO Messages VALUES (?, ?, ?, ?, ?, ?, ?)"
     const epochTime = new Date().getTime()/1000;
     const row = await conn.query(sqlQuery, [0, threadID, senderUserID, recipientUserIDs, messageText, messageAttachments, epochTime]);
-    if (row.constructor.name == "OkPacket") {
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
     return false;
@@ -802,15 +977,65 @@ async function createMessageFromUserID(conn, threadID, senderUserID, recipientUs
 // admin functions
 
 /**
+ * Creates a new user in the database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} username - Desired username.
+ * @param {String} password - Desired password.
+ * @param {Number} role - Desired role.
+ **/
+async function createUser(conn, username, password, role) {
+    const salt = generateSalt(hashConfig.SALT_LEN).toString('base64');
+    const hashedSaltedPepperedPassword = hashSaltPepperPassword(password, salt.toString('base64'));
+    let sqlQuery = "INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, ?)"
+    //const epochTime = Date.now()/1000;
+    const row = await conn.query(sqlQuery, [0, username, hashedSaltedPepperedPassword.toString('base64'), salt, "[]", 1, role]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Reactivates a user in the database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} userID - Desired userID.
+ **/
+async function reactivateUser(conn, userID) {
+    let sqlQuery = "UPDATE Users SET activateStatus=? WHERE userID=?"
+    const row = await conn.query(sqlQuery, [1, userID]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Deactivates a user in the database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} userID - Desired userID.
+ **/
+async function deactivateUser(conn, userID) {
+    let sqlQuery = "UPDATE Users SET activateStatus=? WHERE userID=?"
+    const row = await conn.query(sqlQuery, [0, userID]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Blocks post by postID into database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} postID - Desired postID to block.
+ * @param {Number} postID - Desired postID to block.
  **/
 async function blockPost(conn, postID) {
     let sqlQuery = "UPDATE Posts SET blockStatus=? WHERE postID=?"
     let row = await conn.query(sqlQuery, [1, postID]);
-    if (row.constructor.name == "OkPacket") {
+    if (row.constructor.name == "OkPacket"&& row.affectedRows == 1) {
         return true;
     }
     return false;
@@ -820,12 +1045,12 @@ async function blockPost(conn, postID) {
  * Unblocks post by postID into database.
  *
  * @param {Promise<any>} conn - Pool connection.
- * @param {String} postID - Desired postID to unblock.
+ * @param {Number} postID - Desired postID to unblock.
  **/
 async function unblockPost(conn, postID) {
     let sqlQuery = "UPDATE Posts SET blockStatus=? WHERE postID=?";
     let row = await conn.query(sqlQuery, [0, postID]);
-    if (row.constructor.name == "OkPacket") {
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
     return false;
@@ -838,9 +1063,12 @@ async function unblockPost(conn, postID) {
  * @param {String} commentID - Desired commentID to block.
  **/
 async function blockComment(conn, commentID) {
-    //TODO: check admin role
     let sqlQuery = "UPDATE Comment SET blockStatus=? WHERE commentID=?"
-    return await conn.query(sqlQuery, [1, commentID])
+    const row = await conn.query(sqlQuery, [1, commentID]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -849,10 +1077,13 @@ async function blockComment(conn, commentID) {
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} commentID - Desired commentID to unblock.
  **/
- async function unblockComment(conn, commentID) {
-    //TODO: check admin role
+async function unblockComment(conn, commentID) {
     let sqlQuery = "UPDATE Comment SET blockStatus=? WHERE commentID=?"
-    return await conn.query(sqlQuery, [0, commentID])
+    const row = await conn.query(sqlQuery, [0, commentID]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
 }
 
 // Run web server
