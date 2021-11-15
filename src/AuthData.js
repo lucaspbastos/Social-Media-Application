@@ -8,6 +8,14 @@ var AuthData = (function() {
       sessionStorage.setItem("username", name);
     };
 
+    var getID = function() {
+      return sessionStorage.getItem("userID");   
+    };
+  
+    var setID = function(id) {
+      sessionStorage.setItem("userID", id);
+    };
+
     var getAdmin = function() {
       return sessionStorage.getItem("admin"); 
     };
@@ -44,6 +52,8 @@ var AuthData = (function() {
     return {
       getName: getName,
       setName: setName,
+      getID: getID,
+      setID: setID,
       getAdmin: getAdmin,
       setAdmin: setAdmin,
       getAuth: getAuth,

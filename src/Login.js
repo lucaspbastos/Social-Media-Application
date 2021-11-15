@@ -36,6 +36,7 @@ function Login() {
                 console.log(data.role)
                 if (data.login) {
                   AuthData.setAuth(true)
+                  AuthData.setID(data.userID)
                   AuthData.setSessionString(data.login)
                   if (data.role === 1) {
                     AuthData.setAdmin(1)

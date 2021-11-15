@@ -6,6 +6,9 @@ CREATE TABLE Users (
     username varchar(1000) UNIQUE NOT NULL,
     hashedSaltPepperPassword varchar(1000) NOT NULL,
     salt varchar(1000) NOT NULL,
+    followingList varchar(1000) NOT NULL,
+    profilePicture varchar(1000) NOT NULL,
+    activeStatus int not NULL,
     adminRole int NOT NULL,
     PRIMARY KEY(userID)
 );
@@ -37,7 +40,7 @@ CREATE TABLE Comments (
     commentText varchar(1000),
     fileNames varchar(1000),
     commentDatetime int NOT NULL,
-    blockStatus int NOT NULL,
+    blockStatus int NOT NULL, 
     PRIMARY KEY(commentID),
     FOREIGN KEY(userID) REFERENCES Users(userID),
     FOREIGN KEY(postID) REFERENCES Posts(postID)
