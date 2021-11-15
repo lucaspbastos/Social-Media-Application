@@ -27,7 +27,11 @@ function Search() {
         fetch('http://localhost:3002/search', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({search: val})
+            body: JSON.stringify({
+              userID: AuthData.getID(), 
+              sessionString: AuthData.getSessionString(), 
+              search: val
+            })
 
           }).then(res => {
             return res.json();
@@ -54,7 +58,7 @@ function Search() {
             </form>
         </div>
         <div>
-              { (Object.keys(searchObject.results.user).length===0 ) ? (<></>) : (<h2>{"user: "+searchObject.results.user.username}</h2>)}
+              { (Object.keys(searchObject.results.user).length===0 ) ? (<></>) : (<h2>{"user: "+searchObject.results.user.users}</h2>)}
         </div>
         {(Object.keys(searchObject.results.posts).length === 0) ? (<>{console.log("no posts")}</>) :
             (
