@@ -7,6 +7,7 @@ import Posts from './Posts/Posts'
 import Messages from './Messaging/Messages'
 import Search from './Search'
 import Profile from './Profile'
+import Logout from './Logout'
 
 function App() {
   return (
@@ -32,6 +33,9 @@ function App() {
           </Route>
           <Route exact path="/profile">
             <Profile/> 
+          </Route>
+          <Route exact path="/logout">
+            <Logout/> 
           </Route>
         </Switch>
     </Router>
