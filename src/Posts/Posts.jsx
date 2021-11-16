@@ -41,7 +41,6 @@ function Posts() {
                 setdataObject(data)
             })
     }, [])
-
     //fetch every post
     useEffect(()=>{
         if(newpost===true){
