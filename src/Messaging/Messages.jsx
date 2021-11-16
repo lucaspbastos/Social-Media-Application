@@ -5,74 +5,110 @@ import { Redirect } from 'react-router';
 import { Link } from 'react-router-dom';
 import styles from './MessageCard.module.scss'
 
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemText from '@mui/material/ListItemText';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+
 
 function Messages() {
-  const [users,setUsers]=useState('');
-  const [actualUser,setactualUser]=useState('');
-  const[message,setMessage]=useState('')
-  const[clicked,setClicked]=useState(false)
-  const[threadObject,setthreadObject]=useState({
-    threads: [{messages: [{
+  const [message, setMessage] = useState('');
+  const [messageCount, setMessageCount] = useState(0);
+  const [time, setTime] = useState(0);
+  const [selectedThread, setSelectedThread] = useState(null);
+  const [threadObject, setThreadObject] = useState({
+    threads: [],
+  });
+  const [messageObject, setMessageObject] = useState({
+    messages: [],
+  });
 
-      }]
-    }]
-});
+  useEffect(() => {
+    getThreads();
+  }, []);
 
+  useEffect(() => {
+    getMessages(selectedThread);
+    if (messageCount != 0){
+      const interval = setInterval(() => setTime(Date.now()), 1000);
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [selectedThread, messageCount, time]);
 
-    useEffect(()=>{
-      if(AuthData.getLastThread!==''){
-          console.log(AuthData.getLastThread())
-          fetch('http://localhost:3002/getThreads', {
-              method: 'POST',
-              headers: {"Content-Type": "application/json"},
-              body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: AuthData.getLastThread()})
+  function getThreads() {
+    fetch('http://localhost:3002/getThreads', {
+      method: 'POST',
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        userID: AuthData.getID(), 
+        sessionString: AuthData.getSessionString(),
+      })
+    }).then(res => {
+      return res.json();
+    }).then((data) =>{
+      console.log(data)
+      setThreadObject(previousState => {
+        return {
+          ...previousState,
+          threads: data.threads,
+        }
+      })
+    })
+  }
 
-            }).then(res => {
-              return res.json();
-            }).then(function(data){
-              console.log(data.threads[0].userIDs)
-              setthreadObject(data)
-          })
-      }
-      else{
-        console.log("no thread chosen")
-      }
-    }, [])
+  function getMessages(threadID) {
+    fetch('http://localhost:3002/getMessages', {
+      method: 'POST',
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        userID: AuthData.getID(), 
+        sessionString: AuthData.getSessionString(),
+        threadID: threadID,
+      }),
+    }).then(res => {
+      return res.json();
+    }).then(function(data){
+      console.log(data)
+      setMessageObject(data)
+      setMessageCount(data.messages.length)
+    })
+  }
 
     if(AuthData.getAuth()!=="true"){
       return <Redirect to="/"/>;
   }
 
-  //for setting thread
-  function handleSubmit(event,thread){
-    event.preventDefault();
-    if(thread !==""){
-      setactualUser(thread)
-      AuthData.setLastThread(thread)
-      console.log("thread is "+AuthData.getLastThread())
-      setClicked(true)
-
-    }
-  }
   
   //for message posted by the user
-  //currusr is thread number
-  function handleMessage(e,msg,currUsr){
+  function handleMessage(e, message, threadID){
     e.preventDefault();
-    if(msg!==''){
-      console.log("curre user "+currUsr+ " message is "+msg)
+    if(message !== ''){
         fetch('http://localhost:3002/createMessage', {
           method: 'POST',
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), threadID: 1, recipientUserIDs: currUsr, messageText: msg, messageAttachments: ""})
-
+          body: JSON.stringify({
+            userID: AuthData.getID(), 
+            role: AuthData.getAdmin(), 
+            sessionString: AuthData.getSessionString(), 
+            threadID: threadID, 
+            messageText: message, 
+            messageAttachments: ""
+          })
         }).then(res => {
           return res.json();
         }).then(function(data) {
+          console.log("h")
           console.log(data)
+          setMessageCount((messageCount) => messageCount + 1)
       })
     }
-      
   }
   return (
     <>
@@ -83,46 +119,48 @@ function Messages() {
           {" "}
           <Link to="/search" className={styles.button} style={{height:"50px", width:"200px", backgroundColor:"#2b2b2b"}}>Search</Link>    
         </div>   
-      <div>
-          <form style={{textAlign: "center"}} >
-          <label>
-            Select a Thread: 
-            <br/>
-            <select value={users} onChange={(e)=>setUsers(e.target.value)} >
-            {/* {threadObject.threads.map(thread => {
-                  return (<option key={thread.threadID} value={thread.threadID}>{thread.userIDs.toString()}</option>);
-                })} */}
-            <option></option>
-            <option>[2, 3]</option>
-            </select>
-          </label>
-          <br/>
-          <input type="submit" value="Submit" onClick={(e)=>handleSubmit(e, users)}/>
-        </form>
 
-        { ( actualUser !== '' && clicked) ? (
-        <form style={{textAlign: "center", top: "30px"}}>
-            <label >
-                <textarea style={{width: "250px"}} type="text" name="message" value={message} onChange={(e) => setMessage(e.target.value)} />
-            </label>
-            <br/>
-            <input type="submit" value="Send Message" onClick={(e)=> handleMessage(e,message,actualUser)} />
-        </form>) : (<></>)
-        }
-      </div>
-
-      <div>
-      {threadObject.threads.map((thread)=>
-                        <div key={thread.threadID}>
-                            {thread.messages.map((message)=>
-                                <div key={message.messageID }>
-                                    <MessageBox username={message.userID} message={message.messageText} />
-                                    <br/>
-                                </div>
-                            )}  
-                        </div>
-                    )} 
-      </div>
+      <Box>
+        <Grid container spacing={2}>
+          <Grid item xs={4}>
+            <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'black' }}>
+              {threadObject.threads.map((thread)=>
+                <ListItem>
+                  <ListItemButton onClick={()=>setSelectedThread(thread.threadID)}>
+                    <ListItemText primary={thread.threadName} />
+                  </ListItemButton>
+                </ListItem>
+              )}
+            </List>
+          </Grid>
+          <Grid item xs={4}>
+            <Stack>
+              {messageObject.messages.map((message)=>
+                <MessageBox message={message.messageText} username={message.username}/>
+              )}
+            </Stack>
+          </Grid>
+        </Grid>
+        <Grid
+          container
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+        >
+          {(messageObject.messages.length === 0) ? (<></>) : (
+            <>
+              <TextField
+                    id="outlined-textarea"
+                    label="Send Message"
+                    placeholder="Placeholder"
+                    multiline
+                    onChange={(e) => setMessage(e.target.value)}
+              />
+              <Button variant="contained" onClick={(e)=>handleMessage(e, message, selectedThread)}>Submit</Button>
+            </>
+          )}
+        </Grid>
+      </Box>
     </>
     );
   }

@@ -60,11 +60,12 @@ function Search() {
         <div>
               { (Object.keys(searchObject.results.user).length===0 ) ? (<></>) : (<h2>{"user: "+searchObject.results.user.users}</h2>)}
         </div>
-        {(Object.keys(searchObject.results.posts).length === 0) ? (<>{console.log("no posts")}</>) :
+        {console.log(Object.keys(searchObject.results.posts))}
+        {(Object.keys(searchObject.results.posts).length === 1) ? (<>{console.log("no posts")}</>) :
             (
             <div>
               {searchObject.results.posts.map((post)=>
-                            <div key={post.postID}>
+                            (<div key={post.postID}>
                                 <PostCards id={post.postID} caption={post.postText} imgUrl={post.postAttachments}/>
                                 {post.comments.map((comment)=>
                                     <div key={comment.commentID }>
@@ -72,7 +73,7 @@ function Search() {
                                     </div>
                                 )}
                                 <br/>
-                            </div>
+                            </div>)
                         )}
             </div>
             )}
