@@ -20,6 +20,11 @@ function Logout(){
         }).then(res => {
             return res.json();
         }).then(function(data) {
+            AuthData.setAuth(false)
+            AuthData.setID(null)
+            AuthData.setSessionString(null)
+            AuthData.setAdmin(null)
+            AuthData.setUsername(null)
             console.log(data)
         })
     }, [])
