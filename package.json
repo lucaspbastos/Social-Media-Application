@@ -19,6 +19,7 @@
     "express": "^4.17.1",
     "express-session": "^1.17.2",
     "mariadb": "^2.5.4",
+    "node-fetch": "^2.6.6",
     "react": "^17.0.2",
     "react-bootstrap": "^1.6.4",
     "react-client-session": "0.0.7",
