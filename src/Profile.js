@@ -41,8 +41,11 @@ function Profile({ requestedUserID }){
         
         <div>
             {console.log(userObject.user)}
+            <h1> Username </h1>
             <h2>{userObject.user.username}</h2>
+            <h1> Following List </h1>
             <h2>{userObject.user.followingList}</h2>
+            <h1> Profile Picture </h1>
             <h2>{userObject.user.profilePicture}</h2>
         </div>
         
