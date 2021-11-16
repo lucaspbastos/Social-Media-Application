@@ -12,7 +12,8 @@ function Search() {
       posts: [{
         comments: [{}]
       }],
-      user: {}
+      user: {},
+      teams: {}
     }
   });
 
@@ -36,7 +37,7 @@ function Search() {
           }).then(res => {
             return res.json();
           }).then(function(data) {
-            console.log(data)
+            console.log(data.results.results)
             setsearchObject(data)
         })
     }
@@ -60,7 +61,7 @@ function Search() {
         <div>
               { (Object.keys(searchObject.results.user).length===0 ) ? (<></>) : (<h2>{"user: "+searchObject.results.user.users}</h2>)}
         </div>
-        {console.log(Object.keys(searchObject.results.posts))}
+        {console.log(Object.keys(searchObject.results.teams))}
         {(Object.keys(searchObject.results.posts).length === 1) ? (<>{console.log("no posts")}</>) :
             (
             <div>
@@ -78,22 +79,20 @@ function Search() {
             </div>
             )}
 
-      {(Object.keys(searchObject.results.teams).length === 1) ? (<>{console.log("no teams found")}</>) :
+      {(Object.keys(searchObject.results.teams).length === 0) ? (<>{console.log("no teams found")}</>) :
                   (
                   <div>
-                    {searchObject.results.teams.map((teams)=>
-                                  (<div>
-                                      <h1> Record</h1>
-                                      <h2> {searchObject.results.teams.summary}</h2>
-                                      <h1> Playoff Seed</h1>
-                                      <h2> {searchObject.results.teams.stats[0].value}</h2>
-                                      <h1> Win Percentage</h1>
-                                      <h2> {searchObject.results.teams.stats[3].value}</h2>
-                                  )
-                                  </div>)
-                              )}
+                    <h1> Record</h1>
+                    <h2> {searchObject.results.teams.summary}</h2>
+                    <div>
+                        <h1> Playoff Seed</h1>
+                        <h2> {searchObject.results.teams.stats[0].value}</h2>
+                        <h1> Win Percentage</h1>
+                        <h2> {searchObject.results.teams.stats[3].value}</h2>
+                    </div>
                   </div>
-                  )}
+                  )
+                }
     </div>
   );
 }

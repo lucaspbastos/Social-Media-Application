@@ -20,24 +20,33 @@ function Profile({ requestedUserID }){
     const[userObject, setUserObject] = useState({});
 
     useEffect(async () => {
-        const res = await fetch('http://localhost:3002/getUser', {
+        fetch('http://localhost:3002/getUser', {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 userID: AuthData.getID(),
                 sessionString: AuthData.getSessionString(),
-                requestedUserID
+                requestedUserID: AuthData.getID()
             })
+        }).then(res => {
+            return res.json();
+        }).then(function(data) {
+            console.log(data)
+            setUserObject(data)
         })
-        setUserObject(res)
-    }, [userInfo, userObject])
+    }, [])
 
 
     return(
-    <>
-        <h1> Hello World </h1>
-    </>
-    );
+        
+        <div>
+            {console.log(userObject.user)}
+            <h2>{userObject.user.username}</h2>
+            <h2>{userObject.user.followingList}</h2>
+            <h2>{userObject.user.profilePicture}</h2>
+        </div>
+        
+    )
 
 }
 

@@ -6,6 +6,7 @@ import Invalid from './Invalid'
 import Posts from './Posts/Posts'
 import Messages from './Messaging/Messages'
 import Search from './Search'
+import Profile from './Profile'
 
 function App() {
   return (
@@ -28,6 +29,9 @@ function App() {
           </Route>
           <Route exact path="/invalid">
             <Invalid/> 
+          </Route>
+          <Route exact path="/profile">
+            <Profile/> 
           </Route>
         </Switch>
     </Router>

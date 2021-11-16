@@ -139,7 +139,7 @@ app.post('/search', async (req, res) => {
             }
             //TODO: call espn api if sports team
 
-            const nflTeams = ["49ers", "bears", "bengals", "bills", "broncos", "browns", "buccaneers", "cardinals", "chargers", "chiefs", "colts", "cowboys", "dolphins", "eagles", "falcons", "giants", "jaguars", "jets", "lions", "packers", "panthers", "patriots", "raiders", "rams", "ravens", "saints", "seahawks", "steelers", "texans", "titans", "vikings", "washington"];
+            const nflTeams = ["49ers", "bears", "bengals", "bills", "broncos", "browns", "buccaneers", "cardinals", "chargers", "chiefs", "colts", "cowboys", "dolphins", "eagles", "falcons", "giants", "jaguars", "jets", "lions", "packers", "panthers", "patriots", "raiders", "rams", "ravens", "saints", "seahawks", "steelers", "texans", "titans", "vikings", "football team"];
 
             if (nflTeams.includes(searchQuery.toLowerCase())) {
                 const redefinedSearch = searchQuery[0].toUpperCase() + searchQuery.slice(1);
