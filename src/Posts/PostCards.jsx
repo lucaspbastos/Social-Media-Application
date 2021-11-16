@@ -2,9 +2,17 @@ import styles from './PostCards.module.scss'
 import { useState } from 'react';
 import Comment from './Comment'
 import AuthData from '../AuthData';
-function PostCards({ id, caption, imgUrl }) {
+import Button from '@material-ui/core/Button';
+import Box from '@material-ui/core/Box';
+import TextField from '@material-ui/core/TextField';
+import { useEffect } from 'react';
+import Card from '@material-ui/core/Card';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
+import Typography from '@material-ui/core/Typography';
+import CardHeader from '@material-ui/core/CardHeader';
+function PostCards({ id, caption, imgUrl, handlePosts}) {
     const [comment,setComment]=useState('');
-
     
     function handleBlock(e, ids){
         //remove post from db
@@ -35,31 +43,57 @@ function PostCards({ id, caption, imgUrl }) {
             return res.json();
         }).then(function(data) {
             console.log(data.created)
-            window.location.reload(true);
-
+            handlePosts();
         })
         
     }
+
+    
     return (
+        
         <>
-        <div id={id} className={styles.boxModel}>
-            <div dangerouslySetInnerHTML={{__html: `${caption}` }}/>
-            {imgUrl ==='' ? (<></>) : (<><br/><img src={imgUrl} style={{width:"100px", height: "100px"}}/></>) }
-            <br/><br/>
-        <div/>
-            <button className={styles.button} type="button" onClick={(e)=> handleBlock(e,id)}>{"Block Post"}</button>
-            <span style={{display: "block", marginBottom: "10px"}}/>
-            <form style={{textAlign: "center"}}>
-            <label >
-                <textarea type="text" name="comment" value={comment} onChange={(e) => setComment(e.target.value)}/>
-            </label>
-            <br/>
-            <input style={{textAlign: "center"}} type="submit" value="Comment!" onClick={(e)=>handleComment(e,id,comment)} />
-            </form>
-            <p>{"id is "+id}</p>
-        </div>
+            <Box component="div" sx={{width:"500px"}}>
+                <Card style={{backgroundColor:"#181818", height:"450px", borderBottom: "1px solid red"}}>
+                    <br/>
+                    <Button variant="contained" style={{color: "white", backgroundColor: "#C60C30",right: "10px", float: "right"}} type="button" onClick={(e)=> handleBlock(e,id)}>{"Block Post"}</Button>
+                    <br/>
+                    <CardContent sx={{textAlign: "left"}}>
+                    <Typography variant="body1" color="primary" style={{color:"white", fontSize:"large"}}> 
+                        {caption}
+                    </Typography>
+                    {imgUrl ==='' ? (<></>) : (<><br/><img src={imgUrl} style={{width:"100px", height: "100px"}}/></>) }
+                    <br/><br/><br/>
+                    <form style={{textAlign: "center"}}>
+                        <label >
+                            <TextField variant="filled" size="medium" color="secondary" InputProps={{style: { color: "white", borderBlockColor:"blue"} }} label="Comment"  InputLabelProps={{ style: { color: '#fff' }, }} type="text" name="comment" value={comment} onChange={(e) => setComment(e.target.value)} focused/>
+                        </label>
+                        <br/>
+                        <Button type="submit" variant ="contained" size="small" color="primary" value="Submit" style={{textAlign: "center", paddingTop:"1px", marginTop:"8px", fontSize:"small"}} type="submit" onClick={(e)=>handleComment(e,id,comment)}>{"Comment!"}</Button>
+                    </form>
+                    </CardContent>
+                </Card>
+            </Box>
         </>
     );
 }
   
 export default PostCards;
+
+/*
+ <div id={id} className={styles.boxModel}>
+                <Button variant="contained" style={{color: "white", backgroundColor: "#C60C30",right: "10px", float: "right"}} type="button" onClick={(e)=> handleBlock(e,id)}>{"Block Post"}</Button>
+                <div style={{color: "white"}} dangerouslySetInnerHTML={{__html: `${caption}` }}/>
+                {imgUrl ==='' ? (<></>) : (<><br/><img src={imgUrl} style={{width:"100px", height: "100px"}}/></>) }
+                <br/><br/>
+            <div/>
+                <span style={{display: "block", marginBottom: "10px"}}/>
+                <form style={{textAlign: "center"}}>
+                <label >
+                    <TextField variant="filled" size="small" color="primary" InputProps={{style: { color: "white", borderBlockColor:"blue"} }} label="Comment"  InputLabelProps={{ style: { color: '#fff' }, }} type="text" name="comment" value={comment} onChange={(e) => setComment(e.target.value)} focused/>
+                </label>
+                <br/>
+                <input style={{textAlign: "center"}} type="submit" value="Comment!" onClick={(e)=>handleComment(e,id,comment)} />
+                </form>
+                <p>{"id is "+id}</p>
+            </div>
+*/

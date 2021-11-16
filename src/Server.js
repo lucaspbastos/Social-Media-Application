@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const pool = require('./db');
 const app = express();
-const PORT = process.env.SERVER_PORT || 3001;
+const PORT = process.env.SERVER_PORT || 3002;
 
 app.use(cors());
 app.use(express.json());
