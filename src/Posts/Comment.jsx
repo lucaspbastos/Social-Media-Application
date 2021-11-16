@@ -1,11 +1,23 @@
 import styles from './PostCards.module.scss'
+import Card from '@material-ui/core/Card';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
+import Typography from '@material-ui/core/Typography';
+import CardHeader from '@material-ui/core/CardHeader';
+import Box from '@material-ui/core/Box';
 
 function Comment({id,comment}) {
     return (
         <>
-            <div className={styles.boxModelComment} id={id}>
-                {comment}
-            </div>
+            <Box component="div" sx={{width:"500px",marginBottom: "-20px", opacity: "[0.9, 0.8, 0.7]"}}>
+                <Card style={{backgroundColor:"#181818", height:"50px", borderBottom: "1px solid grey", borderLeft: "1px solid red", borderRight: "1px solid red"}}>
+                    <CardContent sx={{textAlign: "left"}}>
+                        <Typography variant="body1" color="primary" style={{color:"white", fontSize:"large"}}> 
+                            {comment}
+                        </Typography>
+                    </CardContent>
+                </Card>
+            </Box>
         </>
     );
 }

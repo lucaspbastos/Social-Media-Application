@@ -9,6 +9,11 @@ import { Link } from 'react-router-dom';
 import styles from './PostCards.module.scss'
 import { Fade } from 'react-bootstrap';
 import { conditionalExpression } from '@babel/types';
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+import Box from '@material-ui/core/Box';
+import { FilterFramesTwoTone } from '@material-ui/icons';
+
 
 function Posts() {
     let run = 0;
@@ -30,14 +35,12 @@ function Posts() {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
-
             }).then(res => {
                 return res.json();
             }).then(function(data){
                 setdataObject(data)
             })
     }, [])
-
     //fetch every post
     useEffect(()=>{
         if(newpost===true){
@@ -59,6 +62,7 @@ function Posts() {
     if(AuthData.getAuth()!=="true"){
         return <Redirect to="/"/>;
     }
+    
 
     function handleClick(event,msgs,imgs){
         event.preventDefault();

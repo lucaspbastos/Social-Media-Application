@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const pool = require('./db');
 const app = express();
-const PORT = process.env.SERVER_PORT || 3001;
+const PORT = process.env.SERVER_PORT || 3002;
 
 app.use(cors());
 app.use(express.json());
@@ -81,6 +81,82 @@ app.post('/logout', async (req, res) => {
                 throw 'could not log out';
             }
             
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/follow', async (req, res) => { 
+    let userID = req.body.userID;
+    let followUserID = req.body.followUserID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let followingList = await getFollowingListForUserID(conn, userID);
+            if (followingList.includes(Number(followUserID))) {
+                throw 'already following';
+            } else {
+                followingList.push(Number(followUserID));
+            }
+            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, followingList);
+            if (updatedFollowingList) {
+                response = {
+                    'followed': updatedFollowingList
+                }
+            } else {
+                throw 'could not follow';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/unfollow', async (req, res) => { 
+    let userID = req.body.userID;
+    let unfollowUserID = req.body.unfollowUserID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            if (unfollowUserID != userID) {
+                let followingList = await getFollowingListForUserID(conn, userID);
+                let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
+                const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
+                if (updatedFollowingList && followingList.length != newList.length) {
+                    response = {
+                        'unfollowed': updatedFollowingList
+                    }
+                } else {
+                    throw 'could not unfollow';
+                }
+            } else {
+                throw 'cannot unfollow self';
+            }
         } else {
             throw 'bad auth';
         }
@@ -339,7 +415,6 @@ app.post('/getUser', async (req, res) => {
         res.send(JSON.stringify(response));
     }
 });
-
 app.post('/getPosts', async (req, res) => {
     let userID = req.body.userID;
     let sessionString = req.body.sessionString;
@@ -400,7 +475,6 @@ app.post('/getPosts', async (req, res) => {
         res.send(JSON.stringify(response));
     }
 });
-
 app.post('/createPost', async (req, res) => { 
     let userID = req.body.userID;
     let postText = req.body.text;
@@ -497,14 +571,15 @@ app.post('/createComment', async (req, res) => {
             throw 'bad auth';
         }
     } catch (err) {
-        response ={
-            'error': err
+        response = {
+          'error': err
         };
     } finally {
         if (conn) conn.end();
         res.send(JSON.stringify(response));
     }
 });
+
 
 app.post('/getThreads', async (req, res) => { 
     let userID = req.body.userID;
@@ -569,6 +644,122 @@ app.post('/createThread', async (req, res) => {
     } catch (err) {
         response = {
             'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/createMessage', async (req, res) => { 
+    let userID = req.body.userID;
+    let threadID = req.body.threadID;
+    let recipientUserIDs = req.body.recipientUserIDs;
+    let messageText = req.body.messageText;
+    let messageAttachments = req.body.messageAttachments;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const createResult = await createMessageFromUserID(conn, threadID, userID, recipientUserIDs, messageText, messageAttachments);
+            if (createResult) {
+                response = {
+                    'created': createResult,
+                }
+            } else {
+                throw 'could not create message';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/createUser', async (req, res) => { 
+    let userID = req.body.userID;
+    let password = req.body.password;
+    let newUsername = req.body.newUsername;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const role = await getRole(conn, userID);
+            if (role == 1) {
+                const created = await createUser(conn, newUsername, password, 0);
+                if (created) {
+                    const newUserID = await getUserID(conn, newUsername);
+                    let followingList = [];
+                    followingList.push(Number(newUserID));
+                    const updatedFollowingList = await updateFollowingListForUserID(conn, newUserID, followingList);
+                    if (updatedFollowingList) {
+                        response = {
+                            'created': created,
+                        }
+                    } else {
+                        throw 'error setting up user';
+                    }
+                } else {
+                    throw 'could not create user';
+                }
+            } else {
+                throw 'not admin';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/blockPost', async (req, res) => { 
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const role = await getRole(conn, userID);
+            if (role == 1) {
+                const blocked = await blockPost(conn, postID);
+                if (blocked) {
+                    response = {
+                        'blocked': blocked,
+                    }
+                } else {
+                    throw 'could not block post';
+                }
+            } else {
+                throw 'not admin';
+            }
+        }
+    } catch (err) {
+        response = {
+            error: err
         };
     } finally {
         if (conn) conn.end();
@@ -1313,3 +1504,5 @@ async function unblockComment(conn, commentID) {
 
 // Run web server
 app.listen(PORT, () => console.log("Listening on port %s", PORT));
+
+//TODO: consolidate authentications into one function to avoid multiple reused code
