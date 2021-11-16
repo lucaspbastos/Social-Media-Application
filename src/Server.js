@@ -2,6 +2,7 @@
 // CS-490 Alpha Project
 const express = require('express');
 const crypto = require('crypto');
+const fetch = require('node-fetch');
 const cors = require('cors');
 const pool = require('./db');
 const app = express();
@@ -94,158 +95,6 @@ app.post('/logout', async (req, res) => {
     }
 });
 
-app.post('/follow', async (req, res) => { 
-    let userID = req.body.userID;
-    let followUserID = req.body.followUserID;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            let followingList = await getFollowingListForUserID(conn, userID);
-            if (followingList.includes(Number(followUserID))) {
-                throw 'already following';
-            } else {
-                followingList.push(Number(followUserID));
-            }
-            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, followingList);
-            if (updatedFollowingList) {
-                response = {
-                    'followed': updatedFollowingList
-                }
-            } else {
-                throw 'could not follow';
-            }
-        } else {
-            throw 'bad auth';
-        }
-    } catch (err) {
-        response = {
-            'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/unfollow', async (req, res) => { 
-    let userID = req.body.userID;
-    let unfollowUserID = req.body.unfollowUserID;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            if (unfollowUserID != userID) {
-                let followingList = await getFollowingListForUserID(conn, userID);
-                let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
-                const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
-                if (updatedFollowingList && followingList.length != newList.length) {
-                    response = {
-                        'unfollowed': updatedFollowingList
-                    }
-                } else {
-                    throw 'could not unfollow';
-                }
-            } else {
-                throw 'cannot unfollow self';
-            }
-        } else {
-            throw 'bad auth';
-        }
-    } catch (err) {
-        response = {
-            'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/follow', async (req, res) => { 
-    let userID = req.body.userID;
-    let followUserID = req.body.followUserID;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            let followingList = await getFollowingListForUserID(conn, userID);
-            if (followingList.includes(Number(followUserID))) {
-                throw 'already following';
-            } else {
-                followingList.push(Number(followUserID));
-            }
-            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, followingList);
-            if (updatedFollowingList) {
-                response = {
-                    'followed': updatedFollowingList
-                }
-            } else {
-                throw 'could not follow';
-            }
-        } else {
-            throw 'bad auth';
-        }
-    } catch (err) {
-        response = {
-            'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/unfollow', async (req, res) => { 
-    let userID = req.body.userID;
-    let unfollowUserID = req.body.unfollowUserID;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            if (unfollowUserID != userID) {
-                let followingList = await getFollowingListForUserID(conn, userID);
-                let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
-                const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
-                if (updatedFollowingList && followingList.length != newList.length) {
-                    response = {
-                        'unfollowed': updatedFollowingList
-                    }
-                } else {
-                    throw 'could not unfollow';
-                }
-            } else {
-                throw 'cannot unfollow self';
-            }
-        } else {
-            throw 'bad auth';
-        }
-    } catch (err) {
-        response = {
-            'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
 app.post('/search', async (req, res) => {
     let userID = req.body.userID;
     let searchQuery = req.body.search;
@@ -262,10 +111,10 @@ app.post('/search', async (req, res) => {
                 "users": []
             };
             let postsArray = [];
+            let sportsObj = {};
 
             //find close matches
             const others = await getAllUsers(conn);
-            console.log(others)
             if (others) {
                 for (let username of others) {
                     if (username.username.includes(searchQuery)) {
@@ -289,10 +138,28 @@ app.post('/search', async (req, res) => {
                 }
             }
             //TODO: call espn api if sports team
-            
+
+            const nflTeams = ["49ers", "bears", "bengals", "bills", "broncos", "browns", "buccaneers", "cardinals", "chargers", "chiefs", "colts", "cowboys", "dolphins", "eagles", "falcons", "giants", "jaguars", "jets", "lions", "packers", "panthers", "patriots", "raiders", "rams", "ravens", "saints", "seahawks", "steelers", "texans", "titans", "vikings", "washington"];
+
+            if (nflTeams.includes(searchQuery.toLowerCase())) {
+                const redefinedSearch = searchQuery[0].toUpperCase() + searchQuery.slice(1);
+                const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams');
+                const data = await response.json();
+                const teams = data.sports[0].leagues[0].teams;
+                for (let team of teams) {
+                    if (team.team.name == redefinedSearch) {
+                        console.log(team.team.record.items[0].summary);
+                        sportsObj = {
+                            "summary": team.team.record.items[0].summary,
+                            "stats": team.team.record.items[0].stats
+                        }
+                    }
+                }
+            }
             resultsObject["user"] = userObject;
             resultsObject["posts"] = postsArray;
-
+            resultsObject["teams"] = sportsObj;
+            
             response = {
                 'results': resultsObject,
             }
@@ -310,10 +177,10 @@ app.post('/search', async (req, res) => {
     }
 });
 
-app.post('/getPost', async (req, res) => {
+app.post('/follow', async (req, res) => { 
     let userID = req.body.userID;
+    let followUserID = req.body.followUserID;
     let sessionString = req.body.sessionString;
-    let postID = req.body.postID;
     let response;
     let conn;
 
@@ -321,29 +188,57 @@ app.post('/getPost', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            let post = await getPostFromPostID(conn, postID);
-            if (post.length == 1) {
-                const role = await getRole(conn, userID);
-                if (post[0].blockStatus == 1 && role != 1) {
-                    throw 'no post found';
-                }
-                console.log(post);
-                post[0]["fileNames"] = JSON.parse(post[0]["fileNames"]);
-                let comments = await getCommentsFromPostID(conn, postID);
-                for (let comment of comments) {
-                    // Stringified array to array
-                    if (comment.blockStatus == 1 && role != 1) {
-                        continue;
-                    }
-                    comment["fileNames"] = JSON.parse(comment["fileNames"]);
-                    post[0]["comments"].push(comment);
-                }
-                response = {
-                    'post': post,
-                }
-                post["comments"] = comments;
+            let followingList = await getFollowingListForUserID(conn, userID);
+            if (followingList.includes(Number(followUserID))) {
+                throw 'already following';
             } else {
-                throw 'no post found';
+                followingList.push(Number(followUserID));
+            }
+            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, followingList);
+            if (updatedFollowingList) {
+                response = {
+                    'followed': updatedFollowingList
+                }
+            } else {
+                throw 'could not follow';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/unfollow', async (req, res) => { 
+    let userID = req.body.userID;
+    let unfollowUserID = req.body.unfollowUserID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            if (unfollowUserID != userID) {
+                let followingList = await getFollowingListForUserID(conn, userID);
+                let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
+                const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
+                if (updatedFollowingList && followingList.length != newList.length) {
+                    response = {
+                        'unfollowed': updatedFollowingList
+                    }
+                } else {
+                    throw 'could not unfollow';
+                }
+            } else {
+                throw 'cannot unfollow self';
             }
         } else {
             throw 'bad auth';
@@ -375,26 +270,32 @@ app.post('/getUser', async (req, res) => {
                 let posts = await getPostsFromUserID(conn, requestedUserID);
                 const role = await getRole(conn, userID);
                 for (let post of posts) {
-                    let commentsArray = [];
                     // Hide blocked posts from non-admins
-                    if (post.blockStatus == 1 && role != 1) {
-                        continue;
+                    if (role != 1) {
+                        if (post.blockStatus == 0) {
+                            delete post.blockStatus;
+                        } else {
+                            continue;
+                        }
                     }
                     const postID = post.postID;
                     // Stringified array to array
                     post["fileNames"] = JSON.parse(post["fileNames"]);
-
+                    post["comments"] = [];
                     let comments = await getCommentsFromPostID(conn, postID);
                     for (let comment of comments) {
-                        if (comment.blockStatus == 1 && role != 1) {
-                            continue;
+                        if (role != 1) {
+                            if (comment.blockStatus == 0) {
+                                delete comment.blockStatus;
+                            } else {
+                                continue;
+                            }
                         }
                         // Stringified array to array
                         comment["fileNames"] = JSON.parse(comment["fileNames"]);
-                        commentsArray.push(comment);
+                        post["comments"].push(comment);
                     }
 
-                    post["comments"] = commentsArray;
                     requestedUserInfo["posts"].push(post);
                 }
                 response = {
@@ -417,6 +318,107 @@ app.post('/getUser', async (req, res) => {
     }
 });
 
+app.post('/createUser', async (req, res) => { 
+    let userID = req.body.userID;
+    let password = req.body.password;
+    let newUsername = req.body.newUsername;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const role = await getRole(conn, userID);
+            if (role == 1) {
+                const created = await createUser(conn, newUsername, password, 0);
+                if (created) {
+                    const newUserID = await getUserID(conn, newUsername);
+                    let followingList = [];
+                    followingList.push(Number(newUserID));
+                    const updatedFollowingList = await updateFollowingListForUserID(conn, newUserID, followingList);
+                    if (updatedFollowingList) {
+                        response = {
+                            'created': created,
+                        }
+                    } else {
+                        throw 'error setting up user';
+                    }
+                } else {
+                    throw 'could not create user';
+                }
+            } else {
+                throw 'not admin';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/getPost', async (req, res) => {
+    let userID = req.body.userID;
+    let sessionString = req.body.sessionString;
+    let postID = req.body.postID;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let post = await getPostFromPostID(conn, postID);
+            if (post.length == 1) {
+                const role = await getRole(conn, userID);
+                if (role != 1) {
+                    if (post[0].blockStatus == 0) {
+                        delete post[0].blockStatus;
+                    } else {
+                        throw 'no post found';
+                    }
+                }
+                post[0]["fileNames"] = JSON.parse(post[0]["fileNames"]);
+                post[0]["comments"] = [];
+                let comments = await getCommentsFromPostID(conn, postID);
+                for (let comment of comments) {
+                    if (role != 1) {
+                        if (comment.blockStatus == 0) {
+                            delete comment.blockStatus;
+                        } else {
+                            continue;
+                        }
+                    }
+                    // Stringified array to array
+                    comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                    post[0]["comments"].push(comment);
+                }
+                response = {
+                    'post': post,
+                }
+            } else {
+                throw 'no post found';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
 app.post('/getPosts', async (req, res) => {
     let userID = req.body.userID;
     let sessionString = req.body.sessionString;
@@ -428,8 +430,6 @@ app.post('/getPosts', async (req, res) => {
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
             let posts;
-            let postsArray = [];
-            let commentsArray = [];
 
             const role = await getRole(conn, userID);
             if (role == 1) {
@@ -445,24 +445,30 @@ app.post('/getPosts', async (req, res) => {
             //console.log(posts);
             for (let post of posts) {
                 // Hide blocked posts from non-admins
-                if (post.blockStatus == 1 && role != 1) {
-                    continue;
+                if (role != 1) {
+                    if (post.blockStatus == 0) {
+                        delete post.blockStatus;
+                    } else {
+                        continue;
+                    }
                 }
                 const postID = post.postID;
                 // Stringified array to array
                 post["fileNames"] = JSON.parse(post["fileNames"]);
-
+                post["comments"] = [];
                 let comments = await getCommentsFromPostID(conn, postID);
                 for (let comment of comments) {
-                    // if (comment.blockStatus == 1 && role != 1) {
-                    //     continue;
-                    // }
+                    if (role != 1) {
+                        if (comment.blockStatus == 0) {
+                            delete comment.blockStatus;
+                        } else {
+                            continue;
+                        }
+                    }
                     // Stringified array to array
                     comment["fileNames"] = JSON.parse(comment["fileNames"]);
-                    commentsArray.push(comment);
+                    post["comments"].push(comment);
                 }
-
-                post["comments"] = [];
             }
             response = {
                 'posts': posts,
@@ -596,18 +602,9 @@ app.post('/getThreads', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            let threadsArray = [];
             const threads = await getThreadsWithUserID(conn, userID);
-            console.log(threads);
-            for (let thread of threads) {
-                const threadID = thread.threadID;
-                const messagesArray = await getMessagesFromThreadID(conn, threadID);
-                thread["messages"] = messagesArray;
-                threadsArray.push(thread);
-            }
-
             response = {
-                'threads': threadsArray
+                'threads': threads
             }
             console.log(response);
         } else {
@@ -656,12 +653,9 @@ app.post('/createThread', async (req, res) => {
     }
 });
 
-app.post('/createMessage', async (req, res) => { 
+app.post('/getMessages', async (req, res) => { 
     let userID = req.body.userID;
     let threadID = req.body.threadID;
-    let recipientUserIDs = req.body.recipientUserIDs;
-    let messageText = req.body.messageText;
-    let messageAttachments = req.body.messageAttachments;
     let sessionString = req.body.sessionString;
     let response;
     let conn;
@@ -670,13 +664,9 @@ app.post('/createMessage', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            const createResult = await createMessageFromUserID(conn, threadID, userID, recipientUserIDs, messageText, messageAttachments);
-            if (createResult) {
-                response = {
-                    'created': createResult,
-                }
-            } else {
-                throw 'could not create message';
+            const messages = await getMessagesFromThreadID(conn, threadID);
+            response = {
+                'messages': messages
             }
         } else {
             throw 'bad auth';
@@ -684,87 +674,6 @@ app.post('/createMessage', async (req, res) => {
     } catch (err) {
         response = {
             'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/createUser', async (req, res) => { 
-    let userID = req.body.userID;
-    let password = req.body.password;
-    let newUsername = req.body.newUsername;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            const role = await getRole(conn, userID);
-            if (role == 1) {
-                const created = await createUser(conn, newUsername, password, 0);
-                if (created) {
-                    const newUserID = await getUserID(conn, newUsername);
-                    let followingList = [];
-                    followingList.push(Number(newUserID));
-                    const updatedFollowingList = await updateFollowingListForUserID(conn, newUserID, followingList);
-                    if (updatedFollowingList) {
-                        response = {
-                            'created': created,
-                        }
-                    } else {
-                        throw 'error setting up user';
-                    }
-                } else {
-                    throw 'could not create user';
-                }
-            } else {
-                throw 'not admin';
-            }
-        } else {
-            throw 'bad auth';
-        }
-    } catch (err) {
-        response = {
-            'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/blockPost', async (req, res) => { 
-    let userID = req.body.userID;
-    let postID = req.body.postID;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            const role = await getRole(conn, userID);
-            if (role == 1) {
-                const blocked = await blockPost(conn, postID);
-                if (blocked) {
-                    response = {
-                        'blocked': blocked,
-                    }
-                } else {
-                    throw 'could not block post';
-                }
-            } else {
-                throw 'not admin';
-            }
-        }
-    } catch (err) {
-        response = {
-            error: err
         };
     } finally {
         if (conn) conn.end();
@@ -786,59 +695,13 @@ app.post('/createMessage', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            const createResult = await createMessageFromUserID(conn, threadID, userID, recipientUserIDs, messageText, messageAttachments);
+            const createResult = await createMessageFromUserID(conn, threadID, userID, messageText, messageAttachments);
             if (createResult) {
                 response = {
                     'created': createResult,
                 }
             } else {
                 throw 'could not create message';
-            }
-        } else {
-            throw 'bad auth';
-        }
-    } catch (err) {
-        response = {
-            'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/createUser', async (req, res) => { 
-    let userID = req.body.userID;
-    let password = req.body.password;
-    let newUsername = req.body.newUsername;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            const role = await getRole(conn, userID);
-            if (role == 1) {
-                const created = await createUser(conn, newUsername, password, 0);
-                if (created) {
-                    const newUserID = await getUserID(conn, newUsername);
-                    let followingList = [];
-                    followingList.push(Number(newUserID));
-                    const updatedFollowingList = await updateFollowingListForUserID(conn, newUserID, followingList);
-                    if (updatedFollowingList) {
-                        response = {
-                            'created': created,
-                        }
-                    } else {
-                        throw 'error setting up user';
-                    }
-                } else {
-                    throw 'could not create user';
-                }
-            } else {
-                throw 'not admin';
             }
         } else {
             throw 'bad auth';
@@ -1230,18 +1093,17 @@ async function getCommentsFromPostID(conn, postID) {
  **/
 async function getThreadsWithUserID(conn, userID) {
     //TODO: super inefficient, fix
-    let sqlQuery = "SELECT * from Threads LIMIT 100";
-    const ret = await conn.query(sqlQuery);
-    const threads = ret.slice(0);
-    let res = [];
+    let sqlQuery = "SELECT * from Threads";
+    let ret = await conn.query(sqlQuery);
+    let threads = ret.slice(0);
+    let threadsWithUserID = [];
     for (let thread of threads) {
-        const userIDs = thread.userIDs;
-        const parsedUserIDs = JSON.parse(userIDs)
-        if (parsedUserIDs.includes(userID)) {
-            res.push(thread)
+        thread.userIDs = JSON.parse(thread.userIDs);
+        if (thread.userIDs.includes(Number(userID))) {
+            threadsWithUserID.push(thread);
         }
     }
-    return res;
+    return threadsWithUserID;
 }
 
 /**
@@ -1251,7 +1113,7 @@ async function getThreadsWithUserID(conn, userID) {
  * @param {Number} threadID - Desired threadID.
  **/
 async function getMessagesFromThreadID(conn, threadID) {
-    let sqlQuery = "SELECT * from Messages WHERE threadID=?";
+    let sqlQuery = "SELECT Messages.messageID, Messages.threadID, Messages.userID, Messages.messageText, Users.username from Messages INNER JOIN Users ON Messages.userID = Users.userID WHERE threadID=? ORDER BY messageID";
     let ret = await conn.query(sqlQuery, [threadID]);
     return ret.slice(0);
 }
@@ -1367,14 +1229,13 @@ async function changeThreadName(conn, threadName, threadID) {
  * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} senderUserID - Desired sender userID.
- * @param {String[]} recipientUserIDs - Desired recipient userID(s).
  * @param {String} messageText - Desired message text.
  * @param {String} messageAttachments - Desired message attachments.
  **/
-async function createMessageFromUserID(conn, threadID, senderUserID, recipientUserIDs, messageText, messageAttachments) {
-    let sqlQuery = "INSERT INTO Messages VALUES (?, ?, ?, ?, ?, ?, ?)"
+async function createMessageFromUserID(conn, threadID, senderUserID, messageText, messageAttachments) {
+    let sqlQuery = "INSERT INTO Messages VALUES (?, ?, ?, ?, ?, ?)"
     const epochTime = new Date().getTime()/1000;
-    const row = await conn.query(sqlQuery, [0, threadID, senderUserID, recipientUserIDs, messageText, messageAttachments, epochTime]);
+    const row = await conn.query(sqlQuery, [0, threadID, senderUserID, messageText, messageAttachments, epochTime]);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
