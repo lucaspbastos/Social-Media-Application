@@ -233,6 +233,113 @@ app.post('/search', async (req, res) => {
     }
 });
 
+app.post('/getPost', async (req, res) => {
+    let userID = req.body.userID;
+    let sessionString = req.body.sessionString;
+    let postID = req.body.postID;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let post = await getPostFromPostID(conn, postID);
+            if (post.length == 1) {
+                const role = await getRole(conn, userID);
+                if (post[0].blockStatus == 1 && role != 1) {
+                    throw 'no post found';
+                }
+                console.log(post);
+                post[0]["fileNames"] = JSON.parse(post[0]["fileNames"]);
+                let comments = await getCommentsFromPostID(conn, postID);
+                for (let comment of comments) {
+                    // Stringified array to array
+                    if (comment.blockStatus == 1 && role != 1) {
+                        continue;
+                    }
+                    comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                    post[0]["comments"].push(comment);
+                }
+                response = {
+                    'post': post,
+                }
+                post["comments"] = comments;
+            } else {
+                throw 'no post found';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/getUser', async (req, res) => {
+    let userID = req.body.userID;
+    let sessionString = req.body.sessionString;
+    let requestedUserID = req.body.requestedUserID;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let requestedUserInfo = await getUserInfo(conn, requestedUserID);
+            if (requestedUserInfo) {
+                requestedUserInfo["posts"] = [];
+                let posts = await getPostsFromUserID(conn, requestedUserID);
+                const role = await getRole(conn, userID);
+                for (let post of posts) {
+                    let commentsArray = [];
+                    // Hide blocked posts from non-admins
+                    if (post.blockStatus == 1 && role != 1) {
+                        continue;
+                    }
+                    const postID = post.postID;
+                    // Stringified array to array
+                    post["fileNames"] = JSON.parse(post["fileNames"]);
+
+                    let comments = await getCommentsFromPostID(conn, postID);
+                    for (let comment of comments) {
+                        if (comment.blockStatus == 1 && role != 1) {
+                            continue;
+                        }
+                        // Stringified array to array
+                        comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                        commentsArray.push(comment);
+                    }
+
+                    post["comments"] = commentsArray;
+                    requestedUserInfo["posts"].push(post);
+                }
+                response = {
+                    'user': requestedUserInfo
+                }
+            } else {
+                throw 'error getting user info';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        console.log(err)
+        response = {
+            'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
 app.post('/getPosts', async (req, res) => {
     let userID = req.body.userID;
     let sessionString = req.body.sessionString;
@@ -268,11 +375,14 @@ app.post('/getPosts', async (req, res) => {
 
                 let comments = await getCommentsFromPostID(conn, postID);
                 for (let comment of comments) {
+                    if (comment.blockStatus == 1 && role != 1) {
+                        continue;
+                    }
                     // Stringified array to array
                     comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                    post["comments"].push(comment);
                 }
 
-                post["comments"] = comments;
                 postsArray.push(post);
             }
             response = {
@@ -334,27 +444,21 @@ app.post('/getComments', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            // const role = await getRole(conn, userID);
-            // if (role == 1) {
-            //     posts = await getAllPosts(conn);
-            // } else {
-            //     let following = await getFollowingListForUserID(conn, userID);
-            //     if (following.length != 0) {
-            //         posts = await getPostsFromFollowing(conn, following);
-            //     } else {
-            //         throw 'error getting followers';
-            //     }
-            // }
-            
+            let commentsArray = [];
+            const role = await getRole(conn, userID);
             let comments = await getCommentsFromPostID(conn, postID);
             
             for (let comment of comments) {
+                if (comment.blockStatus == 1 && role != 1) {
+                    continue;
+                }
                 // Stringified array to array
                 comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                commentsArray.push(comment);
             }
                 
             response = {
-                'comments': comments,
+                'comments': commentsArray
             }
         } else {
             throw 'bad auth';
@@ -401,7 +505,6 @@ app.post('/createComment', async (req, res) => {
         res.send(JSON.stringify(response));
     }
 });
-
 
 app.post('/getThreads', async (req, res) => { 
     let userID = req.body.userID;
@@ -783,6 +886,21 @@ async function getUserID(conn, username) {
 }
 
 /**
+ * Gets user info from database.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {String} username - Desired username.
+ **/
+async function getUserInfo(conn, userID) {
+    let sqlQuery = "SELECT username, profilePicture, followingList from Users WHERE userID=?";
+    let ret =  await conn.query(sqlQuery, [userID]);
+    if (ret.length == 0) {
+        return null;
+    }
+    return ret[0];
+}
+
+/**
  * Gets userID from database.
  *
  * @param {Promise<any>} conn - Pool connection.
@@ -833,7 +951,7 @@ async function getFollowingListForUserID(conn, userID) {
  * @param {Number} userID - Desired poster's userID.
  **/
 async function getPostsFromUserID(conn, userID) {
-    let sqlQuery = "SELECT * from Posts WHERE posterID=?";
+    let sqlQuery = "SELECT * from Posts WHERE userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
     return ret.slice(0);
 }
@@ -892,7 +1010,7 @@ async function getThreads(conn) {
  **/
 async function getPostFromPostID(conn, postID) {
     let sqlQuery = "SELECT * from Posts WHERE postID=?";
-    let ret = conn.query(sqlQuery, [postID]);
+    let ret = await conn.query(sqlQuery, [postID]);
     return ret.slice(0);
 }
 
@@ -985,8 +1103,10 @@ async function createPostFromUserID(conn, userID, postText, postAttachments) {
 }
 
 /**
- * Blocks a comment by userID for postID into database.
+ * Creates a comment by userID for postID into database.
  *
+ * Returns a boolean if comment creation was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {Number} userID - Desired userID.
  * @param {Number} postID - Desired postID to comment under.
@@ -1011,6 +1131,8 @@ async function createCommentFromUserID(conn, userID, postID, commentText, commen
 /**
  * Creates a message from a sender userID to recipient userID into database.
  *
+ * Returns a boolean if thread creation was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} threadName - Desired threadName.
  * @param {String[]} recipientUserIDs - Desired recipient userID(s).
@@ -1025,8 +1147,10 @@ async function createThread(conn, threadName, recipientUserIDs) {
 }
 
 /**
- * Creates a message from a sender userID to recipient userID into database.
+ * Changes a thread name in database.
  *
+ * Returns a boolean if thread name change was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} threadName - Desired new threadName.
  * @param {Number} threadID - Desired threadID to change.
@@ -1043,6 +1167,8 @@ async function changeThreadName(conn, threadName, threadID) {
 /**
  * Creates a message from a sender userID to recipient userID into database.
  *
+ * Returns a boolean if message creation was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} senderUserID - Desired sender userID.
  * @param {String[]} recipientUserIDs - Desired recipient userID(s).
@@ -1064,6 +1190,8 @@ async function createMessageFromUserID(conn, threadID, senderUserID, recipientUs
 /**
  * Creates a new user in the database.
  *
+ * Returns a boolean if user creation was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} username - Desired username.
  * @param {String} password - Desired password.
@@ -1084,6 +1212,8 @@ async function createUser(conn, username, password, role) {
 /**
  * Reactivates a user in the database.
  *
+ * Returns a boolean if reactivation was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {Number} userID - Desired userID.
  **/
@@ -1099,6 +1229,8 @@ async function reactivateUser(conn, userID) {
 /**
  * Deactivates a user in the database.
  *
+ * Returns a boolean if deactivation was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {Number} userID - Desired userID.
  **/
@@ -1114,6 +1246,8 @@ async function deactivateUser(conn, userID) {
 /**
  * Blocks post by postID into database.
  *
+ * Returns a boolean if blocking was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {Number} postID - Desired postID to block.
  **/
@@ -1129,6 +1263,8 @@ async function blockPost(conn, postID) {
 /**
  * Unblocks post by postID into database.
  *
+ * Returns a boolean if unblocking was successful.
+ * 
  * @param {Promise<any>} conn - Pool connection.
  * @param {Number} postID - Desired postID to unblock.
  **/
@@ -1143,6 +1279,8 @@ async function unblockPost(conn, postID) {
 
 /**
  * Blocks comment by commentID into database.
+ * 
+ * Returns a boolean if blocking was successful.
  *
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} commentID - Desired commentID to block.
@@ -1158,6 +1296,8 @@ async function blockComment(conn, commentID) {
 
 /**
  * Unblocks comment by commentID into database.
+ * 
+ * Returns a boolean if unblocking was successful.
  *
  * @param {Promise<any>} conn - Pool connection.
  * @param {String} commentID - Desired commentID to unblock.
