@@ -124,22 +124,36 @@ function Posts() {
                         <Button type="submit" variant ="contained" size="large" color="primary" value="Submit" onClick={(e)=> { return handleClick(e,msg,img) }}>{"Post"}</Button>
                     </form> 
                 </Box>
-                <div>
-                    {dataObject.posts.map((post)=>
-                            post.blockStatus === 0 && (
-                            <div key={post.id}>
-                                {console.log(post)}
-                                <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts}/>
-                                {post.comments.map((comment) => 
-                                    <div key={comment.commentID }>
-                                        <Comment id={comment.commentID} comment={comment.commentText}/>
+                    <div>
+                        {dataObject.posts.map((post)=>
+                                post.blockStatus === 0 ? (
+                                <div key={post.id}>
+                                    {console.log(post)}
+                                    <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus}/>
+                                    {post.comments.map((comment) =>
+                                        <div key={comment.commentID }>
+                                            <Comment id={comment.commentID} comment={comment.commentText}/>
+                                            <br/>
+                                        </div>
+                                    )} 
+                                    <br/>
+                                </div>
+                            ) :
+                            ((post.blockStatus === 1 && AuthData.getAdmin()==='1') && (
+                                    <div key={post.id}>
+                                        {console.log(post)}
+                                        <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus}/>
+                                        {post.comments.map((comment) =>
+                                            <div key={comment.commentID }>
+                                                <Comment id={comment.commentID} comment={comment.commentText}/>
+                                                <br/>
+                                            </div>
+                                        )} 
                                         <br/>
                                     </div>
-                                )}  
-                                <br/>
-                            </div>
-                        )                                 
-                    )}               
+                                )
+                            )
+                        )}             
                 </div>
             </div >
         </div>
