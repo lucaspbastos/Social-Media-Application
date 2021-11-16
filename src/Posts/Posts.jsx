@@ -110,6 +110,9 @@ function Posts() {
             <Link to="/admin" className={styles.button} style={{height:"50px", width:"200px", backgroundColor:"#2b2b2b"}}>Admin</Link>
             {" "}
             <Link to="/search" className={styles.button} style={{height:"50px", width:"200px", backgroundColor:"#2b2b2b"}}>Search</Link>
+            {" "}
+            <Link to="/profile" className={styles.button} style={{height:"50px", width:"200px", backgroundColor:"#2b2b2b"}}>Profile</Link>
+            {" "}           
             <h1 style={{textAlign: "center"}}>{"Posts"}</h1>
             <br/>
             <div>
