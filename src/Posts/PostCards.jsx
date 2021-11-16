@@ -23,11 +23,15 @@ function PostCards({ id, caption, imgUrl, handlePosts, blockStatus}) {
        //remove post from db
        e.preventDefault();
        console.log(blockStatus)
-       /*if(blockStatus===0){
+       if(blockStatus===0){
            fetch('http://localhost:3002/blockPost', {
            method: 'POST',
            headers: {"Content-Type": "application/json"},
-           body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
+           body: JSON.stringify({
+               userID: AuthData.getID(), 
+               sessionString: AuthData.getSessionString(), 
+               postID: ids
+            })
  
        }).then(res => {
            return res.json();
@@ -40,7 +44,11 @@ function PostCards({ id, caption, imgUrl, handlePosts, blockStatus}) {
            fetch('http://localhost:3002/unblockPost ', {
            method: 'POST',
            headers: {"Content-Type": "application/json"},
-           body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
+           body: JSON.stringify({
+            userID: AuthData.getID(), 
+            sessionString: AuthData.getSessionString(), 
+            postID: ids
+           })
  
            }).then(res => {
                return res.json();
@@ -49,7 +57,7 @@ function PostCards({ id, caption, imgUrl, handlePosts, blockStatus}) {
                window.location.reload(true);
  
            })
-       }*/
+       }
       
       
    }

@@ -126,20 +126,8 @@ function Posts() {
                 </Box>
                     <div>
                         {dataObject.posts.map((post)=>
-                                post.blockStatus === 0 ? (
-                                <div key={post.id}>
-                                    {console.log(post)}
-                                    <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus}/>
-                                    {post.comments.map((comment) =>
-                                        <div key={comment.commentID }>
-                                            <Comment id={comment.commentID} comment={comment.commentText}/>
-                                            <br/>
-                                        </div>
-                                    )} 
-                                    <br/>
-                                </div>
-                            ) :
-                            ((post.blockStatus === 1 && AuthData.getAdmin()==='1') && (
+                            (post.blockStatus != null) ? (
+                                (post.blockStatus === 0) ? (
                                     <div key={post.id}>
                                         {console.log(post)}
                                         <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus}/>
@@ -151,7 +139,33 @@ function Posts() {
                                         )} 
                                         <br/>
                                     </div>
+                                ) : (
+                                    (post.blockStatus === 1 && AuthData.getAdmin()==='1') && (
+                                        <div key={post.id}>
+                                            {console.log(post)}
+                                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus}/>
+                                            {post.comments.map((comment) =>
+                                                <div key={comment.commentID }>
+                                                    <Comment id={comment.commentID} comment={comment.commentText}/>
+                                                    <br/>
+                                                </div>
+                                            )} 
+                                            <br/>
+                                        </div>
+                                    )
                                 )
+                            ) : (
+                                <div key={post.id}>
+                                            {console.log(post)}
+                                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={null}/>
+                                            {post.comments.map((comment) =>
+                                                <div key={comment.commentID }>
+                                                    <Comment id={comment.commentID} comment={comment.commentText}/>
+                                                    <br/>
+                                                </div>
+                                            )} 
+                                            <br/>
+                                        </div>
                             )
                         )}             
                 </div>
