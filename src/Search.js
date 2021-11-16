@@ -77,6 +77,23 @@ function Search() {
                         )}
             </div>
             )}
+
+      {(Object.keys(searchObject.results.teams).length === 1) ? (<>{console.log("no teams found")}</>) :
+                  (
+                  <div>
+                    {searchObject.results.teams.map((teams)=>
+                                  (<div>
+                                      <h1> Record</h1>
+                                      <h2> {searchObject.results.teams.summary}</h2>
+                                      <h1> Playoff Seed</h1>
+                                      <h2> {searchObject.results.teams.stats[0].value}</h2>
+                                      <h1> Win Percentage</h1>
+                                      <h2> {searchObject.results.teams.stats[3].value}</h2>
+                                  )
+                                  </div>)
+                              )}
+                  </div>
+                  )}
     </div>
   );
 }
