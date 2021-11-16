@@ -28,19 +28,35 @@ function Posts() {
     });
 
     console.log("admin is "+AuthData.getAdmin())
+    
+    //for new comments on posts
+    function handlePosts(){
+        fetch('http://localhost:3002/getPosts', {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
 
+            }).then(res => {
+                return res.json();
+            }).then(function(data){
+                setdataObject(data)
+            })
+
+    }
     //fetch data onload
     useEffect(()=>{
             fetch('http://localhost:3002/getPosts', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString()})
+
             }).then(res => {
                 return res.json();
             }).then(function(data){
                 setdataObject(data)
             })
     }, [])
+
     //fetch every post
     useEffect(()=>{
         if(newpost===true){
@@ -72,12 +88,7 @@ function Posts() {
             fetch('http://localhost:3002/createPost', {
                 method: 'POST',
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    userID: AuthData.getID(), 
-                    sessionString: AuthData.getSessionString(), 
-                    text: msgs, 
-                    attachment: imgs
-                })
+                body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), text: msgs, attachment: imgs})
             }).then(res => {
                 return res.json();
             }).then(function(data) {
@@ -102,35 +113,26 @@ function Posts() {
             <h1 style={{textAlign: "center"}}>{"Posts"}</h1>
             <br/>
             <div>
-                <form style={{textAlign: "center"}}>
-                    <label>
-                    Post Message:
-                    <br/>
-                    <div className = "editor" style={{display: "block", marginLeft: "auto", marginRight: "auto", width:"50%"}}>
-                    <label >
-                        <textarea style={{width: "250px"}} type="text" name="message" value={msg} onChange={(e) => setMsg(e.target.value)} />
-                    </label>
-                    </div>
-                    </label>
-                    <br/>
-                    <label>
-                    Image Url:
-                    <br/>
-                    <input type="text" name="url" value={img} onChange={(e) => setImg(e.target.value)}/>
-                    </label>
-                    <br/>
-                    <input type="submit" value="Submit" onClick={(e)=> { return handleClick(e,msg,img) }}/>
-                </form> 
-
+                <Box component="div" sx={{ display: 'flex', borderRadius: '10px', alignItems: 'center', justifyContent: 'center', alignContent:"center", p: 1, border: '1px solid #0074D9', marginLeft:'650px',  marginRight:'200px', width: "550px"}} >
+                    <form style={{textAlign: "center"}}>
+                        <label >
+                            <TextField InputProps={{style: { color: "white" } }} label="Enter Message"  InputLabelProps={{ style: { color: '#fff' }, }} multiline minRows={4} variant="standard" color="primary" maxRows={7} style={{color: "white", width: "500px"}} type="text" name="message" value={msg} onChange={(e) => setMsg(e.target.value)}/>
+                        </label>
+                        <br/>
+                        <TextField InputProps={{style: { color: "white" } }} label="Enter Message"  InputLabelProps={{ style: { color: '#fff' }, }} minRows={1} label="Enter Image Url" variant="standard" type="text" color="primary" name="url" value={img} onChange={(e) => setImg(e.target.value)} />
+                        <br/><br/>
+                        <Button type="submit" variant ="contained" size="large" color="primary" value="Submit" onClick={(e)=> { return handleClick(e,msg,img) }}>{"Post"}</Button>
+                    </form> 
+                </Box>
                 <div>
                     {dataObject.posts.map((post)=>
-                            (
+                            post.blockStatus === 0 && (
                             <div key={post.id}>
                                 {console.log(post)}
-                                <PostCards id={post.postID} caption={post.fileNames} imgUrl={post.fileNames}/>
+                                <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts}/>
                                 {post.comments.map((comment) => 
                                     <div key={comment.commentID }>
-                                        <Comment id={comment.commentID} comment={comment.commentText} />
+                                        <Comment id={comment.commentID} comment={comment.commentText}/>
                                         <br/>
                                     </div>
                                 )}  
@@ -146,5 +148,3 @@ function Posts() {
 }
     
 export default Posts;
-
-

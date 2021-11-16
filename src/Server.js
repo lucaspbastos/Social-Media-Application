@@ -288,6 +288,7 @@ app.post('/search', async (req, res) => {
                     }
                 }
             }
+            //TODO: call espn api if sports team
             
             resultsObject["user"] = userObject;
             resultsObject["posts"] = postsArray;
@@ -400,7 +401,7 @@ app.post('/getUser', async (req, res) => {
                     'user': requestedUserInfo
                 }
             } else {
-                throw 'error getting user info';
+                throw 'requested user not found';
             }
         } else {
             throw 'bad auth';
@@ -415,6 +416,7 @@ app.post('/getUser', async (req, res) => {
         res.send(JSON.stringify(response));
     }
 });
+
 app.post('/getPosts', async (req, res) => {
     let userID = req.body.userID;
     let sessionString = req.body.sessionString;
@@ -427,6 +429,7 @@ app.post('/getPosts', async (req, res) => {
         if (isUser) {
             let posts;
             let postsArray = [];
+            let commentsArray = [];
 
             const role = await getRole(conn, userID);
             if (role == 1) {
@@ -439,6 +442,7 @@ app.post('/getPosts', async (req, res) => {
                     throw 'error getting followers';
                 }
             }
+            //console.log(posts);
             for (let post of posts) {
                 // Hide blocked posts from non-admins
                 if (post.blockStatus == 1 && role != 1) {
@@ -450,19 +454,20 @@ app.post('/getPosts', async (req, res) => {
 
                 let comments = await getCommentsFromPostID(conn, postID);
                 for (let comment of comments) {
-                    if (comment.blockStatus == 1 && role != 1) {
-                        continue;
-                    }
+                    // if (comment.blockStatus == 1 && role != 1) {
+                    //     continue;
+                    // }
                     // Stringified array to array
                     comment["fileNames"] = JSON.parse(comment["fileNames"]);
-                    post["comments"].push(comment);
+                    commentsArray.push(comment);
                 }
 
-                postsArray.push(post);
+                post["comments"] = [];
             }
             response = {
-                'posts': postsArray,
+                'posts': posts,
             }
+            console.log(response);
         } else {
             throw 'bad auth';
         }
@@ -475,6 +480,7 @@ app.post('/getPosts', async (req, res) => {
         res.send(JSON.stringify(response));
     }
 });
+
 app.post('/createPost', async (req, res) => { 
     let userID = req.body.userID;
     let postText = req.body.text;
@@ -572,14 +578,13 @@ app.post('/createComment', async (req, res) => {
         }
     } catch (err) {
         response = {
-          'error': err
+            'error': err
         };
     } finally {
         if (conn) conn.end();
         res.send(JSON.stringify(response));
     }
 });
-
 
 app.post('/getThreads', async (req, res) => { 
     let userID = req.body.userID;
