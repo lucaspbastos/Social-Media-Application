@@ -11,54 +11,75 @@ import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
 import Typography from '@material-ui/core/Typography';
 import CardHeader from '@material-ui/core/CardHeader';
-function PostCards({ id, caption, imgUrl, handlePosts}) {
-    const [comment,setComment]=useState('');
-    
-    function handleBlock(e, ids){
-        //remove post from db
-        e.preventDefault();
-        fetch('http://localhost:3002/blockPost', {
-            method: 'POST',
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
-
-        }).then(res => {
-            return res.json();
-        }).then(function(data) {
-            console.log(data.blocked)
-            window.location.reload(true);
-
-        })
-        
-    }
-    function handleComment(e,pstid,cmnt){
-        
-        e.preventDefault();
-        console.log("comment id "+pstid+" comment is "+cmnt)  
-        fetch('http://localhost:3002/createComment', {
-            method: 'POST',
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({userID: AuthData.getID(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), commentText: cmnt, commentAttachments: "", postID: pstid})
-        }).then(res => {
-            return res.json();
-        }).then(function(data) {
-            console.log(data.created)
-            handlePosts();
-        })
-        
-    }
-
-    
-    return (
-        
-        <>
+function PostCards({ id, caption, imgUrl, handlePosts, blockStatus}) {
+   const [comment,setComment]=useState('');
+   var blockValue=""
+   if(blockStatus===1){
+       blockValue="Unblock Post"
+   }else if(blockStatus===0){
+       blockValue="Block Post"
+   }
+   function handleBlock(e, ids){
+       //remove post from db
+       e.preventDefault();
+       console.log(blockStatus)
+       /*if(blockStatus===0){
+           fetch('http://localhost:3002/blockPost', {
+           method: 'POST',
+           headers: {"Content-Type": "application/json"},
+           body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
+ 
+       }).then(res => {
+           return res.json();
+       }).then(function(data) {
+           console.log(data.blocked)
+           window.location.reload(true);
+ 
+       })
+       }else{
+           fetch('http://localhost:3002/unblockPost ', {
+           method: 'POST',
+           headers: {"Content-Type": "application/json"},
+           body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), postID: ids})
+ 
+           }).then(res => {
+               return res.json();
+           }).then(function(data) {
+               console.log(data.blocked)
+               window.location.reload(true);
+ 
+           })
+       }*/
+      
+      
+   }
+   function handleComment(e,pstid,cmnt){
+      
+       e.preventDefault();
+       console.log("comment id "+pstid+" comment is "+cmnt) 
+       fetch('http://localhost:3002/createComment', {
+           method: 'POST',
+           headers: {"Content-Type": "application/json"},
+           body: JSON.stringify({username: AuthData.getName(), role: AuthData.getAdmin(), sessionString: AuthData.getSessionString(), commentText: cmnt, commentAttachments: "", postID: pstid})
+       }).then(res => {
+           return res.json();
+       }).then(function(data) {
+           console.log(data.created)
+           handlePosts();
+       })
+      
+   }
+ 
+  
+   return (
+       <>
             <Box component="div" sx={{width:"500px"}}>
                 <Card style={{backgroundColor:"#181818", height:"450px", borderBottom: "1px solid red"}}>
                     <br/>
-                    <Button variant="contained" style={{color: "white", backgroundColor: "#C60C30",right: "10px", float: "right"}} type="button" onClick={(e)=> handleBlock(e,id)}>{"Block Post"}</Button>
+                    { AuthData.getAdmin() === '1' && (<Button variant="contained" style={{color: "white", backgroundColor: "#C60C30",right: "10px", float: "right"}} type="button" onClick={(e)=> handleBlock(e,id)}>{blockValue}</Button>)}
                     <br/>
                     <CardContent sx={{textAlign: "left"}}>
-                    <Typography variant="body1" color="primary" style={{color:"white", fontSize:"large"}}> 
+                    <Typography variant="body1" color="primary" style={{color:"white", fontSize:"large"}}>
                         {caption}
                     </Typography>
                     {imgUrl ==='' ? (<></>) : (<><br/><img src={imgUrl} style={{width:"100px", height: "100px"}}/></>) }
@@ -73,11 +94,10 @@ function PostCards({ id, caption, imgUrl, handlePosts}) {
                     </CardContent>
                 </Card>
             </Box>
-        </>
-    );
+     </>
+   );
 }
-  
-export default PostCards;
+ export default PostCards;
 
 /*
  <div id={id} className={styles.boxModel}>
