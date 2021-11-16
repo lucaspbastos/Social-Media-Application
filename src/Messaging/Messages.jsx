@@ -147,7 +147,7 @@ function Messages() {
           justifyContent="center"
           alignItems="center"
         >
-          {(messageObject.messages.length === 0) ? (<></>) : (
+          {(selectedThread === null) ? (<></>) : (
             <>
               <TextField
                     id="outlined-textarea"
