@@ -1145,7 +1145,7 @@ async function updateFollowingListForUserID(conn, userID, followingList) {
  * @param {Array<String>} postAttachments - Desired post attachments.
  **/
 async function createPostFromUserID(conn, userID, postText, postAttachments) {
-    let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?, ?, ?)"
+    let sqlQuery = "INSERT INTO Posts VALUES (?, ?, ?, ?, ?, ?, ?)"
     let fileNames = [];
     for (let attachment of postAttachments.split(',')) {
         fileNames.push(attachment.trim());
@@ -1153,7 +1153,7 @@ async function createPostFromUserID(conn, userID, postText, postAttachments) {
     // fileNames.push(postAttachments);
     const blockStatus = 0;
     const epochTime = new Date().getTime()/1000;
-    const row = await conn.query(sqlQuery, [0, userID, JSON.stringify(fileNames), postText, epochTime, blockStatus]);
+    const row = await conn.query(sqlQuery, [0, userID, "[]", JSON.stringify(fileNames), postText, epochTime, blockStatus]);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
@@ -1172,14 +1172,14 @@ async function createPostFromUserID(conn, userID, postText, postAttachments) {
  * @param {Array<String>} commentAttachments - Desired comment attachments.
  **/
 async function createCommentFromUserID(conn, userID, postID, commentText, commentAttachments) {
-    let sqlQuery = "INSERT INTO Comments VALUES (?, ?, ?, ?, ?, ?, ?)"
+    let sqlQuery = "INSERT INTO Comments VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     let fileNames = [];
     for (let attachment of commentAttachments.split(',')) {
         fileNames.push(attachment.trim());
     }
     const blockStatus = 0;
     const epochTime = new Date().getTime()/1000;
-    const row = await conn.query(sqlQuery, [0, userID, postID, commentText, JSON.stringify(fileNames), epochTime, blockStatus]);
+    const row = await conn.query(sqlQuery, [0, userID, postID, "[]", commentText, JSON.stringify(fileNames), epochTime, blockStatus]);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
@@ -1257,9 +1257,9 @@ async function createMessageFromUserID(conn, threadID, senderUserID, messageText
 async function createUser(conn, username, password, role) {
     const salt = generateSalt(hashConfig.SALT_LEN).toString('base64');
     const hashedSaltedPepperedPassword = hashSaltPepperPassword(password, salt.toString('base64'));
-    let sqlQuery = "INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    let sqlQuery = "INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     //const epochTime = Date.now()/1000;
-    const row = await conn.query(sqlQuery, [0, username, hashedSaltedPepperedPassword.toString('base64'), salt, "[]", "[]", 1, role]);
+    const row = await conn.query(sqlQuery, [0, username, hashedSaltedPepperedPassword.toString('base64'), salt, "[]", "[]", "default.png", 1, role]);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
