@@ -386,6 +386,7 @@ app.post('/getPost', async (req, res) => {
                     }
                 }
                 post[0]["fileNames"] = JSON.parse(post[0]["fileNames"]);
+                post[0]["likedBy"] = JSON.parse(post[0]["likedBy"]);
                 post[0]["comments"] = [];
                 let comments = await getCommentsFromPostID(conn, postID);
                 for (let comment of comments) {
@@ -398,6 +399,7 @@ app.post('/getPost', async (req, res) => {
                     }
                     // Stringified array to array
                     comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                    comment["likedBy"] = JSON.parse(comment["likedBy"]);
                     post[0]["comments"].push(comment);
                 }
                 response = {
@@ -455,6 +457,7 @@ app.post('/getPosts', async (req, res) => {
                 const postID = post.postID;
                 // Stringified array to array
                 post["fileNames"] = JSON.parse(post["fileNames"]);
+                post["likedBy"] = JSON.parse(post["likedBy"]);
                 post["comments"] = [];
                 let comments = await getCommentsFromPostID(conn, postID);
                 for (let comment of comments) {
@@ -467,6 +470,7 @@ app.post('/getPosts', async (req, res) => {
                     }
                     // Stringified array to array
                     comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                    comment["likedBy"] = JSON.parse(comment["likedBy"]);
                     post["comments"].push(comment);
                 }
             }
@@ -649,6 +653,7 @@ app.post('/getComments', async (req, res) => {
                 }
                 // Stringified array to array
                 comment["fileNames"] = JSON.parse(comment["fileNames"]);
+                comment["likedBy"] = JSON.parse(comment["likedBy"]);
                 commentsArray.push(comment);
             }
                 
