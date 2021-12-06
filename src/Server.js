@@ -188,16 +188,16 @@ app.post('/follow', async (req, res) => {
         conn = await fetchConn();
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
-            let followingList = await getFollowingListForUserID(conn, userID);
-            if (followingList.includes(Number(followUserID))) {
+            let followingUsers = await getFollowingListForUserID(conn, userID);
+            if (followingUsers.includes(Number(followUserID))) {
                 throw 'already following';
             } else {
-                followingList.push(Number(followUserID));
+                followingUsers.push(Number(followUserID));
             }
-            const updatedFollowingList = await updateFollowingListForUserID(conn, userID, followingList);
-            if (updatedFollowingList) {
+            const updatedFollowing = await updateFollowingListForUserID(conn, userID, followingUsers);
+            if (updatedFollowing) {
                 response = {
-                    'followed': updatedFollowingList
+                    'followed': updatedFollowing
                 }
             } else {
                 throw 'could not follow';
@@ -227,12 +227,12 @@ app.post('/unfollow', async (req, res) => {
         const isUser = await verifyAuthSession(conn, userID, sessionString);
         if (isUser) {
             if (unfollowUserID != userID) {
-                let followingList = await getFollowingListForUserID(conn, userID);
-                let newList = followingList.filter(user => Number(user) != Number(unfollowUserID));
-                const updatedFollowingList = await updateFollowingListForUserID(conn, userID, newList);
-                if (updatedFollowingList && followingList.length != newList.length) {
+                let followingUsers = await getFollowingListForUserID(conn, userID);
+                let newList = followingUsers.filter(user => Number(user) != Number(unfollowUserID));
+                const updatedFollowing = await updateFollowingListForUserID(conn, userID, newList);
+                if (updatedFollowing && followingUsers.length != newList.length) {
                     response = {
-                        'unfollowed': updatedFollowingList
+                        'unfollowed': updatedFollowing
                     }
                 } else {
                     throw 'could not unfollow';
@@ -335,10 +335,10 @@ app.post('/createUser', async (req, res) => {
                 const created = await createUser(conn, newUsername, password, 0);
                 if (created) {
                     const newUserID = await getUserID(conn, newUsername);
-                    let followingList = [];
-                    followingList.push(Number(newUserID));
-                    const updatedFollowingList = await updateFollowingListForUserID(conn, newUserID, followingList);
-                    if (updatedFollowingList) {
+                    let followingUsers = [];
+                    followingUsers.push(Number(newUserID));
+                    const updatedFollowing = await updateFollowingListForUserID(conn, newUserID, followingUsers);
+                    if (updatedFollowing) {
                         response = {
                             'created': created,
                         }
@@ -519,6 +519,115 @@ app.post('/createPost', async (req, res) => {
     }
 });
 
+app.post('/likePost', async (req, res) => {
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let likedList = await getLikedListForPostID(conn, postID);
+            console.log(likedList);
+            if (likedList.includes(Number(userID))) {
+                throw 'already liked';
+            } else {
+                likedList.push(Number(userID));
+            }
+            const updatedLiked = await updateLikedListForPostID(conn, postID, likedList);
+            console.log(updatedLiked);
+            if (updatedLiked) {
+                response = {
+                    'liked': updatedLiked
+                }
+            } else {
+                throw 'could not like';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            error: err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/blockPost', async (req, res) => { 
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const role = await getRole(conn, userID);
+            if (role == 1) {
+                const blocked = await blockPost(conn, postID);
+                if (blocked) {
+                    response = {
+                        'blocked': blocked,
+                    }
+                } else {
+                    throw 'could not block post';
+                }
+            } else {
+                throw 'not admin';
+            }
+        }
+    } catch (err) {
+        response = {
+            error: err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/unblockPost', async (req, res) => { 
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            const role = await getRole(conn, userID);
+            if (role == 1) {
+                const unblocked = await unblockPost(conn, postID);
+                if (unblocked) {
+                    response = {
+                        'unblocked': unblocked,
+                    }
+                } else {
+                    throw 'could not unblock post';
+                }
+            } else {
+                throw 'not admin';
+            }
+        }
+    } catch (err) {
+        response = {
+            error: err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
 app.post('/getComments', async (req, res) => {
     let userID = req.body.userID;
     let postID = req.body.postID;
@@ -585,6 +694,44 @@ app.post('/createComment', async (req, res) => {
     } catch (err) {
         response = {
             'error': err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/likeComment', async (req, res) => {
+    let userID = req.body.userID;
+    let commentID = req.body.commentID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let likedList = await getLikedListForCommentID(conn, commentID);
+            if (likedList.includes(Number(userID))) {
+                throw 'already liked';
+            } else {
+                likedList.push(Number(userID));
+            }
+            const updatedLiked = await updateLikedListForCommentID(conn, commentID, likedList);
+            if (updatedLiked) {
+                response = {
+                    'liked': updatedLiked
+                }
+            } else {
+                throw 'could not like';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            error: err
         };
     } finally {
         if (conn) conn.end();
@@ -709,76 +856,6 @@ app.post('/createMessage', async (req, res) => {
     } catch (err) {
         response = {
             'error': err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/blockPost', async (req, res) => { 
-    let userID = req.body.userID;
-    let postID = req.body.postID;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            const role = await getRole(conn, userID);
-            if (role == 1) {
-                const blocked = await blockPost(conn, postID);
-                if (blocked) {
-                    response = {
-                        'blocked': blocked,
-                    }
-                } else {
-                    throw 'could not block post';
-                }
-            } else {
-                throw 'not admin';
-            }
-        }
-    } catch (err) {
-        response = {
-            error: err
-        };
-    } finally {
-        if (conn) conn.end();
-        res.send(JSON.stringify(response));
-    }
-});
-
-app.post('/unblockPost', async (req, res) => { 
-    let userID = req.body.userID;
-    let postID = req.body.postID;
-    let sessionString = req.body.sessionString;
-    let response;
-    let conn;
-
-    try {
-        conn = await fetchConn();
-        const isUser = await verifyAuthSession(conn, userID, sessionString);
-        if (isUser) {
-            const role = await getRole(conn, userID);
-            if (role == 1) {
-                const unblocked = await unblockPost(conn, postID);
-                if (unblocked) {
-                    response = {
-                        'unblocked': unblocked,
-                    }
-                } else {
-                    throw 'could not unblock post';
-                }
-            } else {
-                throw 'not admin';
-            }
-        }
-    } catch (err) {
-        response = {
-            error: err
         };
     } finally {
         if (conn) conn.end();
@@ -951,7 +1028,7 @@ async function getUserID(conn, username) {
  * @param {String} username - Desired username.
  **/
 async function getUserInfo(conn, userID) {
-    let sqlQuery = "SELECT username, profilePicture, followingList from Users WHERE userID=?";
+    let sqlQuery = "SELECT username, profilePicture, followingUsers from Users WHERE userID=?";
     let ret =  await conn.query(sqlQuery, [userID]);
     if (ret.length == 0) {
         return null;
@@ -995,12 +1072,12 @@ async function getHashedSaltPepperPassword(conn, userID) {
  * @param {Number} userID - User to grab following list from.
  **/
 async function getFollowingListForUserID(conn, userID) {
-    let sqlQuery = "SELECT followingList from Users WHERE userID=?";
+    let sqlQuery = "SELECT followingUsers from Users WHERE userID=?";
     let ret = await conn.query(sqlQuery, [userID]);
     if (ret.length == 0) {
         return null;
     }
-    return JSON.parse(ret[0].followingList);
+    return JSON.parse(ret[0].followingUsers);
 }
 
 /**
@@ -1086,6 +1163,36 @@ async function getCommentsFromPostID(conn, postID) {
 }
 
 /**
+ * Gets list of likes from postID.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} postID - Post to grab liked list from.
+ **/
+async function getLikedListForPostID(conn, postID) {
+    let sqlQuery = "SELECT likedBy from Posts WHERE postID=?";
+    let ret = await conn.query(sqlQuery, [postID]);
+    if (ret.length == 0) {
+        return null;
+    }
+    return JSON.parse(ret[0].likedBy);
+}
+
+/**
+ * Gets list of likes from commentID.
+ *
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} commentID - Comment to grab liked list from.
+ **/
+async function getLikedListForCommentID(conn, commentID) {
+    let sqlQuery = "SELECT likedBy from Comments WHERE commentID=?";
+    let ret = await conn.query(sqlQuery, [commentID]);
+    if (ret.length == 0) {
+        return null;
+    }
+    return JSON.parse(ret[0].likedBy);
+}
+
+/**
  * Gets messages from a userID from database.
  *
  * @param {Promise<any>} conn - Pool connection.
@@ -1124,11 +1231,11 @@ async function getMessagesFromThreadID(conn, threadID) {
  * Sets new following list for userID.
  * @param {Promise<any>} conn - Pool connection.
  * @param {Number} userID - Desired userID.
- * @param {Array<Number>} followingList - Desired new following list.
+ * @param {Array<Number>} followingUsers - Desired new following list.
  **/
-async function updateFollowingListForUserID(conn, userID, followingList) {
-    let sqlQuery = "UPDATE Users SET followingList=? WHERE userID=?";
-    const row = await conn.query(sqlQuery, [JSON.stringify(followingList), userID]);
+async function updateFollowingListForUserID(conn, userID, followingUsers) {
+    let sqlQuery = "UPDATE Users SET followingUsers=? WHERE userID=?";
+    const row = await conn.query(sqlQuery, [JSON.stringify(followingUsers), userID]);
     console.log(row);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
@@ -1318,6 +1425,22 @@ async function blockPost(conn, postID) {
 }
 
 /**
+ * Sets new liked list for postID.
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} postID - Desired postID.
+ * @param {Array<Number>} followingUsers - Desired new following list.
+ **/
+async function updateLikedListForPostID(conn, postID, likedList) {
+    let sqlQuery = "UPDATE Posts SET likedBy=? WHERE postID=?";
+    const row = await conn.query(sqlQuery, [JSON.stringify(likedList), postID]);
+    console.log(row);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Unblocks post by postID into database.
  *
  * Returns a boolean if unblocking was successful.
@@ -1362,6 +1485,22 @@ async function blockComment(conn, commentID) {
 async function unblockComment(conn, commentID) {
     let sqlQuery = "UPDATE Comment SET blockStatus=? WHERE commentID=?"
     const row = await conn.query(sqlQuery, [0, commentID]);
+    if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Sets new liked list for commentID.
+ * @param {Promise<any>} conn - Pool connection.
+ * @param {Number} commentID - Desired commentID.
+ * @param {Array<Number>} followingUsers - Desired new following list.
+ **/
+async function updateLikedListForCommentID(conn, commentID, likedList) {
+    let sqlQuery = "UPDATE Comments SET likedBy=? WHERE commentID=?";
+    const row = await conn.query(sqlQuery, [JSON.stringify(likedList), commentID]);
+    console.log(row);
     if (row.constructor.name == "OkPacket" && row.affectedRows == 1) {
         return true;
     }
