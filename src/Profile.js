@@ -24,7 +24,7 @@ function Profile({ requestedUserID }){
         user: {
             username: '',
             profilePicture: '',
-            followingList: [0],
+            followingUsers: [0],
             posts: [],
         }
     });
@@ -53,17 +53,17 @@ function Profile({ requestedUserID }){
             <h1> Username </h1>
             <h2>{userObject.user.username}</h2>
             <h1> Following:</h1>
-            <h2>{JSON.parse(userObject.user.followingList).length-1}</h2>
+            <h2>{userObject.user.followingUsers.length-1}</h2>
             <h1> Profile Picture </h1>
             <h2>{userObject.user.profilePicture}</h2>
             {console.log(userObject.user.posts)}
             <div>
             {userObject.user.posts.map((post)=>
                 (<div key={post.postID}>
-                    <PostCards id={post.postID} caption={post.postText} imgUrl={post.postAttachments}/>
+                    <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames}/>
                     {post.comments.map((comment)=>
                         <div key={comment.commentID }>
-                            <Comment id={comment.commentID} comment={comment.commentText} />
+                            <Comment id={comment.commentID} comment={comment.commentText} userID={comment.userID}/>
                         </div>
                     )}
                     <br/>
