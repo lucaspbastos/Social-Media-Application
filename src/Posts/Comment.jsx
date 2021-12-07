@@ -19,7 +19,7 @@ import {
     Avatar,
 } from "@material-ui/core";
 
-function Comment({id,comment, handlePosts, likesArr}) {
+function Comment({id,comment, handlePosts, likesArr, userID}) {
 
     var likesCnt=0
     if(likesArr !== undefined){
@@ -73,7 +73,7 @@ function Comment({id,comment, handlePosts, likesArr}) {
               <ListItemText
                 primary={
                   <Typography >
-                    {"User 5"}
+                    {"User "+userID}
                   </Typography>
                 }
                 secondary={

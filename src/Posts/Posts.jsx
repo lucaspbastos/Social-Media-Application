@@ -134,7 +134,7 @@ function Posts() {
                                         <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus} postLike={post.likedBy}/>
                                         {post.comments.map((comment) =>
                                             <div key={comment.commentID }>
-                                                <Comment id={comment.commentID} comment={comment.commentText} handlePosts={handlePosts} likesArr={comment.likedBy}/>
+                                                <Comment id={comment.commentID} comment={comment.commentText} handlePosts={handlePosts} likesArr={comment.likedBy} userID={comment.userID}/>
                                                 <br/>
                                             </div>
                                         )} 
