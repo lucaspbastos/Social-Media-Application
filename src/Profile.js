@@ -15,6 +15,7 @@ import Search from './Search'
 import { useState, useEffect } from 'react';
 import PostCards from './Posts/PostCards'
 import Comment from './Posts/Comment'
+import Header from './Header';
 
 function Profile({ requestedUserID }){
 
@@ -48,6 +49,7 @@ function Profile({ requestedUserID }){
 
     return(
         <div style={{textAlign: "center"}}>
+            <Header/>  
             <h1> Username </h1>
             <h2>{userObject.user.username}</h2>
             <h1> Following:</h1>

@@ -14,6 +14,7 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import Header from '../Header';
 
 
 function Messages() {
@@ -111,15 +112,8 @@ function Messages() {
     }
   }
   return (
-    <>
-        <div style={{textAlign: "center"}}>
-          <Link to="/posts" className={styles.button} style={{height:"50px", width:"200px", backgroundColor:"#2b2b2b"}}>Posts</Link>
-          {" "}
-          <Link to="/admin" className={styles.button} style={{height:"50px", width:"200px", backgroundColor:"#2b2b2b"}}>Admin</Link>   
-          {" "}
-          <Link to="/search" className={styles.button} style={{height:"50px", width:"200px", backgroundColor:"#2b2b2b"}}>Search</Link>    
-        </div>   
-
+    <div>
+      <Header/><br></br><br></br><br></br>
       <Box>
         <Grid container spacing={2}>
           <Grid item xs={4}>
@@ -161,7 +155,7 @@ function Messages() {
           )}
         </Grid>
       </Box>
-    </>
+      </div>
     );
   }
   

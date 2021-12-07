@@ -2,6 +2,7 @@ import { useState } from "react";
 import AuthData from './AuthData';
 import { Redirect } from 'react-router';
 import { Link } from "react-router-dom";
+import Header from "./Header";
 function Admin() {
   const[password,setPassword]=useState('');
   const[username,setUsername]=useState('');
@@ -29,11 +30,7 @@ function Admin() {
 
   return (
     <div >
-      <Link to="/messages"  style={{height:"50px", width:"200px"}}>Messages</Link>
-      {" "}
-      <Link to="/search" style={{height:"50px", width:"200px"}}>Search</Link>
-      {" "}
-      <Link to="/posts" style={{height:"50px", width:"200px"}}>Posts</Link>
+      <Header/>
       <h1 style={{textAlign: "center"}}>{"Admin User Page"}</h1>
       <br/>
       <h2 style={{textAlign: "center"}}>{"Create a User"}</h2>

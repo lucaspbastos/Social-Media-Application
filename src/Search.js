@@ -4,6 +4,7 @@ import { Redirect } from 'react-router';
 import { Link } from "react-router-dom";
 import PostCards from './Posts/PostCards'
 import Comment from "./Posts/Comment";
+import Header from './Header';
 
 function Search() {
   const [searchVal, setsearchVal]=useState('');
@@ -44,14 +45,7 @@ function Search() {
   }
   return (
       <div>
-        <div>
-            <Link to="/posts"  style={{height:"50px", width:"200px"}}>Posts</Link>
-            {" "}
-            <Link to="/admin" style={{height:"50px", width:"200px"}}>Admin</Link>
-            {" "}
-            <Link to="/messages" style={{height:"50px", width:"200px"}}>Messages</Link>
-            <h1 style={{textAlign: "center"}}>{"Search Page"}</h1>
-        </div>
+        <Header/><br></br><br></br><br></br><br></br><br></br><br></br>
         <div style={{textAlign: "center"}}>
             <form className={"searchBox"} >
             <input style={{height:"25px", width:"270px"}}type="text" name="searchVal" value={searchVal} onChange={(e) => setsearchVal(e.target.value)}/>
