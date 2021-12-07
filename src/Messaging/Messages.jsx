@@ -144,6 +144,8 @@ function Messages() {
           {(selectedThread === null) ? (<></>) : (
             <>
               <TextField
+                  autoFocus="true"
+                    color="primary"
                     id="outlined-textarea"
                     label="Send Message"
                     placeholder="Placeholder"

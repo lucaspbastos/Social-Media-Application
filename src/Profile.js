@@ -53,9 +53,9 @@ function Profile({ requestedUserID }){
             <h1> Username </h1>
             <h2>{userObject.user.username}</h2>
             <h1> Following:</h1>
-            <h2>{userObject.user.followingUsers.length-1}</h2>
+            <h2>{(userObject.user.followingUsers.length)-1}</h2>
             <h1> Profile Picture </h1>
-            <h2>{userObject.user.profilePicture}</h2>
+            <img style={{height: "200px", width: "200px"}}src={userObject.user.profilePicture}/>
             {console.log(userObject.user.posts)}
             <div>
             {userObject.user.posts.map((post)=>
