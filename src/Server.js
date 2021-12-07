@@ -562,6 +562,39 @@ app.post('/likePost', async (req, res) => {
     }
 });
 
+app.post('/unlikePost', async (req, res) => {
+    let userID = req.body.userID;
+    let postID = req.body.postID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let likedList = await getLikedListForPostID(conn, postID);
+            let newList = likedList.filter(user => Number(user) != Number(userID));
+            const updatedLiked = await updateLikedListForPostID(conn, postID, newList);
+            if (updatedLiked) {
+                response = {
+                    'unliked': updatedLiked
+                }
+            } else {
+                throw 'could not unlike';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            error: err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
 app.post('/blockPost', async (req, res) => { 
     let userID = req.body.userID;
     let postID = req.body.postID;
@@ -730,6 +763,39 @@ app.post('/likeComment', async (req, res) => {
                 }
             } else {
                 throw 'could not like';
+            }
+        } else {
+            throw 'bad auth';
+        }
+    } catch (err) {
+        response = {
+            error: err
+        };
+    } finally {
+        if (conn) conn.end();
+        res.send(JSON.stringify(response));
+    }
+});
+
+app.post('/unlikeComment', async (req, res) => {
+    let userID = req.body.userID;
+    let commentID = req.body.commentID;
+    let sessionString = req.body.sessionString;
+    let response;
+    let conn;
+    try {
+        conn = await fetchConn();
+        const isUser = await verifyAuthSession(conn, userID, sessionString);
+        if (isUser) {
+            let likedList = await getLikedListForCommentID(conn, commentID);
+            let newList = likedList.filter(user => Number(user) != Number(userID));
+            const updatedLiked = await updateLikedListForCommentID(conn, commentID, newList);
+            if (updatedLiked) {
+                response = {
+                    'unliked': updatedLiked
+                }
+            } else {
+                throw 'could not unlike';
             }
         } else {
             throw 'bad auth';

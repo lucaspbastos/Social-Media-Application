@@ -26,9 +26,9 @@ function PostCards({ id, caption, imgUrl, handlePosts, blockStatus, postLike}) {
     if(postLike !== undefined){
         pstlikeCnt=postLike.length
     }
-    // if(imgUrl[0].length===0){
-    //     imgUrl="https://upload.wikimedia.org/wikipedia/commons/8/89/HD_transparent_picture.png"
-    // }
+    if(imgUrl === undefined || imgUrl[0].length===0){
+        imgUrl="https://upload.wikimedia.org/wikipedia/commons/8/89/HD_transparent_picture.png"
+    }
    var blockValue=""
    if(blockStatus===1){
        blockValue="Unblock Post"
@@ -42,26 +42,39 @@ function PostCards({ id, caption, imgUrl, handlePosts, blockStatus, postLike}) {
         if(postLike.includes(parseInt(AuthData.getID()))){
             console.log(AuthData.getID())
             console.log("liked")
+            fetch('http://localhost:3002/unlikePost', {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    userID: AuthData.getID(), 
+                    sessionString: AuthData.getSessionString(), 
+                    postID: id})
+            }).then(res => {
+                return res.json();
+            }).then(function(data) {
+                console.log(data)
+                handlePosts();
+            })
         }
         else{
             console.log("not liked")
-            /*
+            
             fetch('http://localhost:3002/likePost', {
-            method: 'POST',
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                userID: AuthData.getID(), 
-                sessionString: AuthData.getSessionString(), 
-                postID: id})
-        }).then(res => {
-            return res.json();
-        }).then(function(data) {
-            console.log(data)
-            handlePosts();
-        })
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    userID: AuthData.getID(), 
+                    sessionString: AuthData.getSessionString(), 
+                    postID: id})
+            }).then(res => {
+                return res.json();
+            }).then(function(data) {
+                console.log(data)
+                handlePosts();
+            })
 
 
-            */
+            
             
         }
    }

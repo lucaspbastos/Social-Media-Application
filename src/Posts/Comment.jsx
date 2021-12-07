@@ -26,31 +26,40 @@ function Comment({id,comment, handlePosts, likesArr}) {
         likesCnt=likesArr.length
     }
 
-    function handleCommentLike(e, ids){
+    function handleCommentLike(e, id){
         e.preventDefault();
         if(likesArr.includes(parseInt(AuthData.getID()))){
             console.log(AuthData.getID())
-            console.log("liked")
+            fetch('http://localhost:3002/unlikeComment', {
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    userID: AuthData.getID(), 
+                    sessionString: AuthData.getSessionString(), 
+                    commentID: id})
+            }).then(res => {
+                return res.json();
+            }).then(function(data) {
+                console.log(data)
+                handlePosts();
+            })
         }
         else{
             console.log("not liked")
-            /*
+            
             fetch('http://localhost:3002/likeComment', {
-            method: 'POST',
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                userID: AuthData.getID(), 
-                sessionString: AuthData.getSessionString(), 
-                commentID: id})
-        }).then(res => {
-            return res.json();
-        }).then(function(data) {
-            console.log(data)
-            handlePosts();
-        })
-
-
-            */
+                method: 'POST',
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    userID: AuthData.getID(), 
+                    sessionString: AuthData.getSessionString(), 
+                    commentID: id})
+            }).then(res => {
+                return res.json();
+            }).then(function(data) {
+                console.log(data)
+                handlePosts();
+            })
         }
     }
     return (
