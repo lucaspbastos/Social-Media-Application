@@ -18,12 +18,16 @@ const headersData = [
         href: "/messages",
     },
     {
-        label: "Search",
-        href: "/search",
-    },
-    {
         label: "Admin Panel",
         href: "/admin",
+    },
+    {
+        label: "Profile",
+        href: "/profile",
+    },
+    {
+        label: "Search",
+        href: "/search",
     },
     {
         label: "Log Out",
