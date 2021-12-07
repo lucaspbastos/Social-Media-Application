@@ -4,20 +4,84 @@ import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
 import Typography from '@material-ui/core/Typography';
 import CardHeader from '@material-ui/core/CardHeader';
-import Box from '@material-ui/core/Box';
+import FavoriteIcon from '@material-ui/icons/Favorite';
+import Button from '@material-ui/core/Button';
+import AuthData from '../AuthData';
 
-function Comment({id,comment}) {
+
+import Box from '@material-ui/core/Box';
+import {
+    List,
+    ListItem,
+    Divider,
+    ListItemText,
+    ListItemAvatar,
+    Avatar,
+} from "@material-ui/core";
+
+function Comment({id,comment, handlePosts, likesArr}) {
+
+    var likesCnt=0
+    if(likesArr !== undefined){
+        likesCnt=likesArr.length
+    }
+
+    function handleCommentLike(e, ids){
+        e.preventDefault();
+        if(likesArr.includes(parseInt(AuthData.getID()))){
+            console.log(AuthData.getID())
+            console.log("liked")
+        }
+        else{
+            console.log("not liked")
+            /*
+            fetch('http://localhost:3002/likeComment', {
+            method: 'POST',
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                userID: AuthData.getID(), 
+                sessionString: AuthData.getSessionString(), 
+                commentID: id})
+        }).then(res => {
+            return res.json();
+        }).then(function(data) {
+            console.log(data)
+            handlePosts();
+        })
+
+
+            */
+        }
+    }
     return (
         <>
-            <Box component="div" sx={{width:"500px",marginBottom: "-20px", opacity: "[0.9, 0.8, 0.7]"}}>
-                <Card style={{backgroundColor:"#181818", height:"50px", borderBottom: "1px solid grey", borderLeft: "1px solid red", borderRight: "1px solid red"}}>
-                    <CardContent sx={{textAlign: "left"}}>
-                        <Typography variant="body1" color="primary" style={{color:"white", fontSize:"large"}}> 
-                            {comment}
-                        </Typography>
-                    </CardContent>
-                </Card>
-            </Box>
+            <Box style={{marginTop:"-20px"}}>
+            <ListItem alignItems="flex-start" style={{backgroundColor:"#181818", width:"500px"}}>
+              <Divider style={{background:"grey"}}/>
+              <ListItemAvatar>
+                <Avatar alt="avatar" src={""} />
+              </ListItemAvatar>
+              <ListItemText
+                primary={
+                  <Typography >
+                    {"User 5"}
+                  </Typography>
+                }
+                secondary={
+                  <>
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      style={{color:"white"}}
+                    >
+                      {comment}
+                    </Typography>
+                  </>
+                }
+              />
+                <Button endIcon={<FavoriteIcon />} color='secondary' style={{marginLeft: "10px"}} onClick={(e)=>handleCommentLike(e,id)}>{likesCnt+" likes"} </Button>
+            </ListItem>
+         </Box> 
         </>
     );
 }

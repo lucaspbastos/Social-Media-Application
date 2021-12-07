@@ -17,6 +17,7 @@ import Header from '../Header';
 
 
 function Posts() {
+
     let run = 0;
 
     const [msg,setMsg]=useState('');
@@ -44,6 +45,7 @@ function Posts() {
             })
 
     }
+    
     //fetch data onload
     useEffect(()=>{
             fetch('http://localhost:3002/getPosts', {
@@ -54,6 +56,7 @@ function Posts() {
             }).then(res => {
                 return res.json();
             }).then(function(data){
+                console.log(data)
                 setdataObject(data)
             })
     }, [])
@@ -93,7 +96,7 @@ function Posts() {
             }).then(res => {
                 return res.json();
             }).then(function(data) {
-                console.log(data)
+                console.log("post data is"+ data)
                 setnewPost(true)
             })
 
@@ -122,15 +125,16 @@ function Posts() {
                     </form> 
                 </Box>
                     <div>
+                        {console.log(dataObject)}
                         {dataObject.posts.map((post)=>
                             (post.blockStatus != null) ? (
                                 (post.blockStatus === 0) ? (
                                     <div key={post.id}>
-                                        {console.log(post)}
-                                        <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus}/>
+                                        {console.log("post data is"+ post)}
+                                        <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus} postLike={post.likedBy}/>
                                         {post.comments.map((comment) =>
                                             <div key={comment.commentID }>
-                                                <Comment id={comment.commentID} comment={comment.commentText}/>
+                                                <Comment id={comment.commentID} comment={comment.commentText} handlePosts={handlePosts} likesArr={comment.likedBy}/>
                                                 <br/>
                                             </div>
                                         )} 
@@ -139,11 +143,11 @@ function Posts() {
                                 ) : (
                                     (post.blockStatus === 1 && AuthData.getAdmin()==='1') && (
                                         <div key={post.id}>
-                                            {console.log(post)}
-                                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus}/>
+                                            {console.log("post data is"+ post)}
+                                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={post.blockStatus} postLike={post.likedBy}/>
                                             {post.comments.map((comment) =>
                                                 <div key={comment.commentID }>
-                                                    <Comment id={comment.commentID} comment={comment.commentText}/>
+                                                    <Comment id={comment.commentID} comment={comment.commentText} handlePosts={handlePosts} likesArr={comment.likedBy}/>
                                                     <br/>
                                                 </div>
                                             )} 
@@ -153,11 +157,11 @@ function Posts() {
                                 )
                             ) : (
                                 <div key={post.id}>
-                                            {console.log(post)}
-                                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={null}/>
+                                            {console.log("post data is"+ post)}
+                                            <PostCards id={post.postID} caption={post.postText} imgUrl={post.fileNames} handlePosts={handlePosts} blockStatus={null} postLike={post.likedBy}/>
                                             {post.comments.map((comment) =>
                                                 <div key={comment.commentID }>
-                                                    <Comment id={comment.commentID} comment={comment.commentText}/>
+                                                    <Comment id={comment.commentID} comment={comment.commentText} handlePosts={handlePosts} likesArr={comment.likedBy} />
                                                     <br/>
                                                 </div>
                                             )} 
