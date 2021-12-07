@@ -24,7 +24,7 @@ function Logout(){
             AuthData.setID(null)
             AuthData.setSessionString(null)
             AuthData.setAdmin(null)
-            AuthData.setUsername(null)
+            AuthData.setName(null)
             console.log(data)
         })
     }, [])
