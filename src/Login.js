@@ -69,7 +69,7 @@ function Login() {
         <label>
           Password:
           <br/>
-          <input type="text" name="password" required value={pass} onChange={(e) => setPass(e.target.value)}/>
+          <input type="password" name="password" required value={pass} onChange={(e) => setPass(e.target.value)}/>
         </label>
         <input type="submit" value="Submit" onClick={(e)=> handleClick(e,user,pass)}/>
       </form>
